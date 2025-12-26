@@ -1,0 +1,22 @@
+# Ignore unnecessary files during Docker build
+.git
+.gitignore
+*.md
+services/
+producers/
+assets/
+.env
+.env.*
+credentials.txt
+.unique_id
+.config/
+__pycache__/
+*.pyc
+node_modules/
+venv/
+.terraform/
+*.tfstate
+*.tfstate.*
+.DS_Store
+
+

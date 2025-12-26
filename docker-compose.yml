@@ -1,0 +1,13 @@
+services:
+  terraform:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      args:
+        IMAGE_ARCH: ${IMAGE_ARCH:?error}
+    env_file:
+      - .env
+    working_dir: /app/infrastructure
+    volumes:
+      - ./infrastructure:/app/infrastructure
+      - ./.config:/root/.config
