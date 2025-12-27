@@ -53,37 +53,37 @@ A real-time, event-driven architecture powered by Confluent Cloud (Kafka + Flink
 
 ```mermaid
 graph TD
-    subgraph Client Layer
+    subgraph ClientLayer [Client Layer]
         Web[React Frontend]
         Mobile[Mobile App]
         User[Citizen / Responder]
     end
 
-    subgraph "Confluent Cloud (Data in Motion)"
+    subgraph ConfluentCloud [Confluent Cloud - Data in Motion]
         Kafka[Kafka Topics]
         Flink[Flink SQL Engine]
         Connect[Connectors]
     end
 
-    subgraph "Google Cloud (Intelligence)"
+    subgraph GoogleCloud [Google Cloud - Intelligence]
         Gemini[Gemini 2.0 Flash]
         Vertex[Vertex AI Agents]
     end
 
-    subgraph "Backend Services"
-        FastAPI[FastAPI Gateway]
+    subgraph BackendLayer [Backend Services]
+        FastAPIGateway[FastAPI Gateway]
         MultiAgent[Agent Orchestrator]
-        VectorDB[MongoDB Atlas (Vector)]
+        VectorDB[MongoDB Atlas - Vector]
     end
 
     User --> Web
-    Web -->|WebSocket / HTTP| FastAPI
+    Web -->|WebSocket / HTTP| FastAPIGateway
     
-    FastAPI -->|Produce Events| Kafka
+    FastAPIGateway -->|Produce Events| Kafka
     Kafka -->|Stream| Flink
-    Flink -->|Aggregates| FastAPI
+    Flink -->|Aggregates| FastAPIGateway
     
-    FastAPI -->|Query| MultiAgent
+    FastAPIGateway -->|Query| MultiAgent
     MultiAgent -->|Reasoning| Gemini
     MultiAgent -->|RAG| VectorDB
     Gemini -->|Context| Vertex
@@ -95,24 +95,24 @@ A modern, component-based UI designed for real-time interactivity.
 
 ```mermaid
 graph TD
-    subgraph "Frontend App"
+    subgraph FrontendApp [Frontend App]
         Entry[main.tsx]
         Router[React Router]
         
-        subgraph "Core Components"
+        subgraph Components [Core Components]
             Nav[Sidebar / Navigation]
             Map[Leaflet Map View]
             Chat[AI Copilot Chat]
             Dash[Real-Time Dashboard]
         end
         
-        subgraph "Context & State"
+        subgraph State [Context & State]
             AuthCtx[Auth Context]
             WSCtx[WebSocket Context]
             ThemeCtx[Theme Provider]
         end
         
-        subgraph "Services"
+        subgraph Services [Services]
             Api[Axios Client]
             Socket[WebSocket Client]
         end
@@ -137,21 +137,21 @@ A robust, asynchronous python backend handling orchestration and stream processi
 
 ```mermaid
 graph TD
-    subgraph "FastAPI Application"
+    subgraph FastAPILayer [FastAPI Application]
         API[API Router]
         WS[WebSocket Manager]
         Models[Pydantic Models]
     end
 
-    subgraph "Multi-Agent System"
+    subgraph AgentLayer [Multi-Agent System]
         Orchestrator[Query Handler]
         Triage[Triage Agent]
         Impact[Impact Agent]
         Guide[Guidance Agent]
     end
 
-    subgraph "External Integrations"
-        Mongo[MongoDB (Vector Store)]
+    subgraph Integrations [External Integrations]
+        Mongo[MongoDB - Vector Store]
         KafkaMgr[Kafka Consumer Manager]
         Weather[Open-Meteo API]
     end
@@ -164,7 +164,7 @@ graph TD
     Impact --> Guide
     
     Guide --> Mongo
-    Guide -->|LLM Calls| GoogleAI[Google Gemini]
+    Guide -->|LLM Calls| Gemini2[Google Gemini]
     
     KafkaMgr -->|Live Updates| WS
     API -->|Context| Weather
