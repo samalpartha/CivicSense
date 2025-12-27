@@ -22,3 +22,4 @@ python-dotenv==1.0.1
 # Utilities
 python-multipart==0.0.17
 
+httpx
