@@ -5,6 +5,14 @@ echo "========================================================"
 echo "   CivicSense Cloud Deployment Updater"
 echo "========================================================"
 
+# 0. Load Environment Variables
+if [ -f .env ]; then
+  source .env
+  echo "✅ Loaded .env file"
+else
+  echo "⚠️  Warning: .env file not found. Secrets might be missing."
+fi
+
 # 1. Verify GCloud Auth
 if ! gcloud auth list --filter=status:ACTIVE --format="value(account)" | grep -q "@"; then
    echo "❌ Error: Not authenticated."
@@ -33,7 +41,8 @@ gcloud run deploy civicsense-backend \
     --cpu 2 \
     --min-instances 1 \
     --max-instances 10 \
-    --execution-environment gen2
+    --execution-environment gen2 \
+    --set-env-vars="GEMINI_API_KEY=${GCP_GEMINI_API_KEY},NEWSDATA_API_KEY=${NEWSDATA_API_KEY},GCP_PROJECT_ID=${PROJECT_ID},KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS},KAFKA_API_KEY=${KAFKA_API_KEY},KAFKA_API_SECRET=${KAFKA_API_SECRET},MONGO_URI=${MONGO_URI}"
 
 # 3. Get Backend URL for Frontend Config
 BACKEND_URL=$(gcloud run services describe civicsense-backend --region $REGION --format 'value(status.url)')
@@ -43,7 +52,6 @@ echo "✅ Backend deployed at: $BACKEND_URL"
 echo ""
 echo "🚀 [2/2] Deploying Frontend Service..."
 echo "-------------------------------------"
-
 
 
 # Note: Cloud Build substitutions don't directly map to Docker --build-arg unless specified in cloudbuild.yaml.
@@ -64,7 +72,7 @@ echo "-------------------------------------"
 cat <<EOF > frontend-cloudbuild.yaml
 steps:
 - name: 'gcr.io/cloud-builders/docker'
-  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/civicsense-frontend', '--build-arg', 'VITE_API_URL=$BACKEND_URL', '.' ]
+  args: [ 'build', '-t', 'gcr.io/$PROJECT_ID/civicsense-frontend', '--build-arg', 'VITE_API_URL=$BACKEND_URL', '--build-arg', 'VITE_GOOGLE_MAPS_API_KEY=${VITE_GOOGLE_MAPS_API_KEY}', '.' ]
 images:
 - 'gcr.io/$PROJECT_ID/civicsense-frontend'
 EOF
