@@ -50,28 +50,36 @@ class QueryHandler:
 
             context = context or {}
 
-            # Step 1: Triage - Classify the query
-            triage_result = await self.triage_agent.classify(message, context)
-            logger.info(f"Triage result: {triage_result}")
+            # Parallel Execution: Run Analysis (Triage+Impact) and Vector Search concurrently
+            # This saves significant time by overlapping LLM and Database I/O
+            triage_task = asyncio.create_task(self.triage_agent.classify(message, context))
+            search_task = asyncio.create_task(self.vector_search.search(message, limit=settings.VECTOR_SEARCH_LIMIT))
 
-            # Step 2: Vector Search - Get relevant context from knowledge base
-            search_results = []
-            try:
-                search_results = await self.vector_search.search(
-                    message, limit=settings.VECTOR_SEARCH_LIMIT
-                )
+            # Await both
+            triage_result, search_results = await asyncio.gather(triage_task, search_task, return_exceptions=True)
+
+            # Handle Triage Result
+            if isinstance(triage_result, Exception):
+                logger.error(f"Triage failed: {triage_result}")
+                triage_result = {"category": "general", "severity": "info", "urgency": "medium"}
+            
+            # Handle Search Result
+            if isinstance(search_results, Exception):
+                logger.warning(f"Vector search failed (continuing without RAG): {search_results}")
+                search_results = []
+            else:
                 logger.info(f"Found {len(search_results)} relevant documents")
-            except Exception as e:
-                logger.warning(f"Vector search failed (continuing without RAG): {e}")
-                # Continue without vector search results
 
-            # Step 3: Impact Assessment - Determine severity and affected areas
-            impact_result = await self.impact_agent.assess(
-                query=message, category=triage_result["category"], context=context
-            )
-            logger.info(f"Impact assessment: severity={impact_result.get('severity')}")
+            # Construct impact object from new Triage result
+            # (TriageAgent now returns impact fields directly)
+            impact_result = {
+                "severity": triage_result.get("severity", "info"),
+                "affected_areas": triage_result.get("affected_areas", []),
+                "affected_groups": triage_result.get("affected_groups", []),
+                "time_sensitive": triage_result.get("urgency") in ["critical", "high"]
+            }
 
-            # Step 4: Guidance Generation - Create the response
+            # Step 3: Guidance Generation - Create the response
             guidance_result = await self.guidance_agent.generate(
                 query=message,
                 category=triage_result["category"],
@@ -80,7 +88,7 @@ class QueryHandler:
                 context=context,
             )
 
-            # Step 5: Monitoring - Log for analytics (async, non-blocking)
+            # Step 4: Monitoring - Log for analytics (async, non-blocking)
             asyncio.create_task(
                 self.monitoring_agent.log_interaction(
                     query=message,

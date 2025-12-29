@@ -11,50 +11,45 @@ from logger import logger
 
 class TriageAgent(BaseAgent):
     """
-    Classifies queries into categories and determines priority.
-
-    Categories:
-    - emergency: Immediate safety concerns
-    - infrastructure: Utilities, roads, internet
-    - education: Schools, closures, schedules
-    - transit: Public transportation
-    - general: Other civic inquiries
+    Classifies queries and assesses impact in a single pass.
+    Combines categorization, urgency, and impact assessment.
     """
 
     def __init__(self):
         super().__init__("TriageAgent")
-        self.system_instruction = """You are a triage specialist for civic queries.
-Classify queries into these categories: emergency, infrastructure, education, transit, or general.
-Assess urgency as: critical, high, medium, or low.
+        self.system_instruction = """You are a civic query analyst.
+Analyze the user query to determine:
+1. Category: emergency, infrastructure, education, transit, or general.
+2. Urgency: critical, high, medium, low.
+3. Impact Severity: critical, high, moderate, low, info.
+4. Affected Areas: List of specific locations mentioned or implied.
+5. Affected Groups: public, seniors, parents, students, etc.
+
 Respond ONLY with valid JSON in this format:
 {
   "category": "category_name",
   "urgency": "urgency_level",
+  "severity": "severity_level",
+  "affected_areas": ["area1", "area2"],
+  "affected_groups": ["group1"],
   "confidence": 0.95,
   "reasoning": "brief explanation"
 }"""
 
     async def classify(self, query: str, context: Dict = None) -> Dict:
         """
-        Classify a user query.
-
-        Args:
-            query: User's question
-            context: Optional context (location, user_type, etc.)
-
-        Returns:
-            Classification result with category, urgency, and confidence
+        Analyze a user query for category and impact.
         """
         try:
             context_str = ""
             if context:
                 context_str = f"\n\nContext: {json.dumps(context, indent=2)}"
 
-            prompt = f"""Classify this civic query:
+            prompt = f"""Analyze this civic query:
 
 Query: "{query}"{context_str}
 
-Provide classification as JSON."""
+Provide analysis as JSON."""
 
             response = await self.call_gemini(
                 prompt=prompt,
@@ -65,7 +60,7 @@ Provide classification as JSON."""
             # Parse JSON response
             result = self._parse_response(response)
             logger.info(
-                f"Query classified as {result['category']} with {result['urgency']} urgency"
+                f"Query analysis: category={result['category']}, urgency={result['urgency']}, areas={result.get('affected_areas')}"
             )
 
             return result
