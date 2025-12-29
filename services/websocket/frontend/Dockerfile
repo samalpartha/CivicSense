@@ -14,7 +14,9 @@ COPY . .
 # We will pass VITE_API_URL via --build-arg if needed, or rely on relative paths if on same domain (not likely for Cloud Run split services)
 # For this setup, we'll assume the user will provide the backend URL later or we use a default.
 ARG VITE_API_URL
+ARG VITE_GOOGLE_MAPS_API_KEY
 ENV VITE_API_URL=$VITE_API_URL
+ENV VITE_GOOGLE_MAPS_API_KEY=$VITE_GOOGLE_MAPS_API_KEY
 ENV CACHE_BUST=3
 RUN ls -R src/lib
 
