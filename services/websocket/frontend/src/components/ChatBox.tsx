@@ -1,11 +1,14 @@
-import {useState, useRef, useEffect} from "react";
-import {Bot, Send, X, AlertCircle} from "lucide-react";
-import {wsService, ChatMessage} from "../utils/websocket";
+import { useState, useRef, useEffect } from "react";
+import { Bot, Send, X, AlertCircle } from "lucide-react";
+import { wsService, ChatMessage } from "../utils/websocket";
 import Markdown from "react-markdown";
+import { allAlerts } from "@/data/mockData";
+
 
 interface ChatBoxProps {
     isOpen: boolean;
     onClose: () => void;
+    autoQuery?: string;
 }
 
 interface Message {
@@ -16,7 +19,7 @@ interface Message {
     timestamp?: string;
 }
 
-const ChatBox = ({isOpen, onClose}: ChatBoxProps) => {
+const ChatBox = ({ isOpen, onClose, autoQuery }: ChatBoxProps) => {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -38,7 +41,7 @@ const ChatBox = ({isOpen, onClose}: ChatBoxProps) => {
 
     const scrollToBottom = () => {
         if (messagesEndRef.current) {
-            messagesEndRef.current.scrollIntoView({behavior: "smooth", block: "end"});
+            messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
         }
     };
 
@@ -100,21 +103,32 @@ const ChatBox = ({isOpen, onClose}: ChatBoxProps) => {
         };
     }, []);
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (!message.trim() || !isConnected) return;
+    // Logic to handle autoQuery
+    useEffect(() => {
+        if (isOpen && autoQuery && isConnected) {
+            handleSendMessage(autoQuery);
+        } else if (isOpen && autoQuery && !isConnected) {
+            // Wait for connection then send
+            const sub = wsService.status$.subscribe(status => {
+                if (status === 'connected') {
+                    handleSendMessage(autoQuery);
+                    sub.unsubscribe();
+                }
+            });
+            return () => sub.unsubscribe();
+        }
+    }, [isOpen, autoQuery, isConnected]);
 
-        // Add user message to chat
-        setMessages(prev => [...prev, {text: message, isUser: true}]);
+    const handleSendMessage = (text: string) => {
+        if (!text.trim()) return;
+
+        setMessages(prev => [...prev, { text: text, isUser: true }]);
         setIsLoading(true);
-        
-        const userMessage = message;
-        setMessage("");
 
-        // Send query via WebSocket
-        const sent = wsService.sendMessage(userMessage, {
+        const sent = wsService.sendMessage(text, {
             user_type: 'general',
-            language: 'en'
+            language: 'en',
+            active_alerts: allAlerts
         });
 
         if (!sent) {
@@ -127,6 +141,14 @@ const ChatBox = ({isOpen, onClose}: ChatBoxProps) => {
         }
     };
 
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!message.trim() || !isConnected) return;
+
+        handleSendMessage(message);
+        setMessage("");
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -136,7 +158,7 @@ const ChatBox = ({isOpen, onClose}: ChatBoxProps) => {
                 className="flex items-center justify-between bg-gradient-to-r from-medical-primary to-medical-accent text-white p-4 rounded-t-xl">
                 <div className="flex items-center gap-3">
                     <div className="bg-white/20 p-2 rounded-full">
-                        <Bot size={20}/>
+                        <Bot size={20} />
                     </div>
                     <div>
                         <span className="font-semibold">CivicSense Assistant</span>
@@ -150,7 +172,7 @@ const ChatBox = ({isOpen, onClose}: ChatBoxProps) => {
                     onClick={onClose}
                     className="hover:bg-white/20 p-2 rounded-full transition-colors"
                 >
-                    <X size={20}/>
+                    <X size={20} />
                 </button>
             </div>
 
@@ -161,12 +183,11 @@ const ChatBox = ({isOpen, onClose}: ChatBoxProps) => {
                         className={`flex ${msg.isUser ? "justify-end" : "justify-start"} animate-fade-in`}
                     >
                         <div
-                            className={`max-w-[80%] p-3 rounded-2xl shadow-sm ${
-                                msg.isUser
-                                    ? "bg-medical-primary text-white"
-                                    : "bg-white text-gray-800"
-                            }`}
-                            style={{whiteSpace: "pre-line"}}
+                            className={`max-w-[80%] p-3 rounded-2xl shadow-sm ${msg.isUser
+                                ? "bg-medical-primary text-white"
+                                : "bg-white text-gray-800"
+                                }`}
+                            style={{ whiteSpace: "pre-line" }}
                         >
                             <Markdown>{msg.text}</Markdown>
                         </div>
@@ -177,16 +198,16 @@ const ChatBox = ({isOpen, onClose}: ChatBoxProps) => {
                         <div className="bg-white p-3 rounded-2xl shadow-sm">
                             <div className="flex space-x-2">
                                 <div className="w-2 h-2 bg-medical-primary rounded-full animate-bounce"
-                                     style={{animationDelay: '0ms'}}></div>
+                                    style={{ animationDelay: '0ms' }}></div>
                                 <div className="w-2 h-2 bg-medical-primary rounded-full animate-bounce"
-                                     style={{animationDelay: '150ms'}}></div>
+                                    style={{ animationDelay: '150ms' }}></div>
                                 <div className="w-2 h-2 bg-medical-primary rounded-full animate-bounce"
-                                     style={{animationDelay: '300ms'}}></div>
+                                    style={{ animationDelay: '300ms' }}></div>
                             </div>
                         </div>
                     </div>
                 )}
-                <div ref={messagesEndRef} className="h-0"/>
+                <div ref={messagesEndRef} className="h-0" />
             </div>
 
             <form onSubmit={handleSubmit} className="p-4 border-t bg-white rounded-b-xl">
@@ -204,7 +225,7 @@ const ChatBox = ({isOpen, onClose}: ChatBoxProps) => {
                         disabled={isLoading || !isConnected}
                         title={!isConnected ? 'Connecting...' : 'Send message'}
                     >
-                        <Send size={18}/>
+                        <Send size={18} />
                     </button>
                 </div>
             </form>

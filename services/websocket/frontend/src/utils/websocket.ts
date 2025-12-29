@@ -20,6 +20,7 @@ export interface ChatContext {
     user_type?: 'parent' | 'senior' | 'worker' | 'student' | 'general';
     location?: string;
     language?: string;
+    active_alerts?: any[];
 }
 
 type MessageHandler = (message: ChatMessage) => void;

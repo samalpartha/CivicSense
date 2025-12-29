@@ -1,9 +1,21 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Bot } from "lucide-react";
 import ChatBox from "./ChatBox";
 
 const AiAssistantButton = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
+  const [autoQuery, setAutoQuery] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const handleOpenChat = (e: any) => {
+      setIsChatOpen(true);
+      if (e.detail?.autoQuery) {
+        setAutoQuery(e.detail.autoQuery);
+      }
+    };
+    window.addEventListener('civic:open-chat', handleOpenChat);
+    return () => window.removeEventListener('civic:open-chat', handleOpenChat);
+  }, []);
 
   return (
     <>
@@ -13,7 +25,14 @@ const AiAssistantButton = () => {
       >
         <Bot size={24} />
       </button>
-      <ChatBox isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} />
+      <ChatBox
+        isOpen={isChatOpen}
+        onClose={() => {
+          setIsChatOpen(false);
+          setAutoQuery(undefined);
+        }}
+        autoQuery={autoQuery}
+      />
     </>
   );
 };

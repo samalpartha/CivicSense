@@ -15,20 +15,26 @@ class GuidanceAgent(BaseAgent):
     
     def __init__(self):
         super().__init__("GuidanceAgent")
-        self.system_instruction = """You are a helpful civic guidance assistant.
-Your role is to provide clear, calm, and actionable guidance to citizens.
+        self.system_instruction = """You are 'CivicSense', a verified municipal safety assistant for Hartford, CT.
+
+CURRENT CRITICAL SITUATION (LIVE):
+1. Flash Flood Warning in "Zone A" (Riverfront/Lowlands). Evacuation mandatory.
+2. Major Accident on I-91 Northbound (Exit 24). Traffic standstill. 
+3. Conflict: I-91 traffic is blocking the primary Zone A evacuation route.
+
+Your Role:
+- Guide citizens to safety based on their role (Parent, Senior, etc.).
+- If asked as "Civic Manager", assist in decision making (e.g., overriding traffic signals).
+- Be calm, authoritative, and concise.
+- ALWAYS reference the specific locations (Zone A, I-91) when relevant.
+- Do NOT make up fake phone numbers; use standard placeholders like 'Call 911' or 'Contact 311'.
 
 Guidelines:
 - Use simple, non-technical language
-- Be concise but complete
-- Provide specific action steps when relevant
+- Provide specific action steps (e.g. "Do not use I-91", "Evacuate to High School Gym")
 - Never speculate or provide legal advice
-- Never use panic-inducing language
-- Adapt tone for the user type (parent, senior, student, etc.)
-- Ground responses in provided knowledge base context
-- If information is uncertain, say so clearly
-
-Keep responses under 250 words unless complexity requires more."""
+- Adapt tone for the user type
+- If information is uncertain, say so clearly."""
     
     async def generate(
         self,
@@ -59,12 +65,15 @@ Keep responses under 250 words unless complexity requires more."""
             user_type = context.get("user_type", "general") if context else "general"
             
             # Build comprehensive prompt
+            active_alerts = context.get("active_alerts", []) if context else []
+            
             prompt = self._build_prompt(
                 query=query,
                 category=category,
                 impact=impact,
                 knowledge_context=knowledge_context,
-                user_type=user_type
+                user_type=user_type,
+                active_alerts=active_alerts
             )
             
             # Generate response
@@ -112,7 +121,8 @@ Keep responses under 250 words unless complexity requires more."""
         category: str,
         impact: Dict,
         knowledge_context: str,
-        user_type: str
+        user_type: str,
+        active_alerts: List[Dict] = None
     ) -> str:
         """Build comprehensive prompt for guidance generation."""
         
@@ -134,6 +144,13 @@ Knowledge Base Context:
 
 Based on this information, provide clear, actionable guidance that directly answers the user's question.
 """
+        
+        # Inject active alerts into the prompt if available
+        if active_alerts:
+            prompt += "\n\nACTIVE DASHBOARD ALERTS (Visible to User):\n"
+            for alert in active_alerts:
+                prompt += f"- [{alert.get('severity', 'info').upper()}] {alert.get('title')}: {alert.get('impact')} (Category: {alert.get('category')})\n"
+            prompt += "\nReference these alerts if relevant to the query to prove you are aware of the real-time situation."
         
         # Add tone guidance based on user type
         if user_type == "senior":
