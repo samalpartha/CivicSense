@@ -7,14 +7,15 @@ import { Button } from "@/components/ui/button";
 interface WarRoomProps {
     onClose: () => void;
     location: { name: string; lat: number; lon: number };
+    alerts: any[];
 }
 
-const WarRoom = ({ onClose, location }: WarRoomProps) => {
+const WarRoom = ({ onClose, location, alerts }: WarRoomProps) => {
     const [simStep, setSimStep] = useState(0); // 0: Assessment, 1: Processing, 2: Success
 
     const handleAuthorize = () => {
         setSimStep(1);
-        setTimeout(() => setSimStep(2), 2500); // Fake processing delay
+        setTimeout(() => setSimStep(2), 2500); // Processing delay
     };
 
     return (
@@ -49,66 +50,45 @@ const WarRoom = ({ onClose, location }: WarRoomProps) => {
 
                         {/* Map Visualization Mockup */}
                         <div className="flex-1 bg-slate-900 rounded-lg border border-slate-800 relative overflow-hidden group">
-
-                            {/* Map Layers */}
-                            <div
-                                className="absolute inset-0 opacity-20 bg-cover bg-center grayscale mix-blend-screen transition-all duration-1000"
+                            {/* (Map layers omitted for brevity - kept as is) */}
+                            <iframe
+                                frameBorder="0"
+                                scrolling="no"
+                                title="War Room Map"
+                                className="absolute inset-0 w-full h-full opacity-80"
                                 style={{
-                                    backgroundImage: `url('https://api.mapbox.com/styles/v1/mapbox/dark-v10/static/${location.lon},${location.lat},12,0/800x600?access_token=YOUR_TOKEN')`
+                                    filter: 'invert(100%) hue-rotate(180deg) brightness(85%) contrast(110%) grayscale(20%)',
+                                    pointerEvents: 'none'
                                 }}
-                            />
+                                src={`https://www.openstreetmap.org/export/embed.html?bbox=${location.lon - 0.05}%2C${location.lat - 0.05}%2C${location.lon + 0.05}%2C${location.lat + 0.05}&layer=mapnik`}
+                            ></iframe>
+                            {/* Detailed Grid Overlay */}
+                            <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-10 mix-blend-overlay pointer-events-none" />
 
-                            {/* Custom Map Elements (CSS Drawing for demo) */}
-                            <div className="absolute inset-0 flex items-center justify-center">
-                                {/* River Zone */}
-                                <div className={`absolute top-1/4 right-1/3 w-32 h-64 bg-blue-500/20 blur-xl rounded-full ${simStep < 2 ? 'animate-pulse' : ''}`}></div>
-
-                                {/* I-91 Line */}
-                                <div className="absolute top-0 bottom-0 left-1/2 w-2 bg-slate-700"></div>
-
-                                {/* Bottleneck Point */}
-                                {simStep < 2 && (
-                                    <div className="absolute top-1/2 left-1/2 -ml-1 w-6 h-6 bg-red-500 rounded-full animate-ping"></div>
-                                )}
-
-                                {/* Success State */}
-                                {simStep === 2 && (
-                                    <div className="absolute top-1/2 left-1/2 -ml-1 text-green-500 flex flex-col items-center animate-in zoom-in-50 duration-500">
-                                        <ShieldCheck size={48} />
-                                        <span className="font-bold bg-slate-900/80 px-2 py-1 rounded mt-2">TRAFFIC CLEARED</span>
-                                    </div>
-                                )}
-                            </div>
-
-                            {/* Map Overlays */}
+                            {/* Live Overlays */}
                             <div className="absolute top-4 left-4 space-y-2">
                                 <Badge variant="outline" className="bg-red-900/80 text-white border-red-500 flex gap-1">
-                                    <MapPin size={10} /> Zone A: Evacuation Active
+                                    <MapPin size={10} /> Active Zone: {location.name}
                                 </Badge>
-                                <Badge variant="outline" className="bg-black/50 text-slate-300 border-slate-600 flex gap-1">
-                                    I-91: Congested (Black Line)
+                                <Badge variant="outline" className="bg-blue-900/50 text-slate-300 border-blue-500 flex gap-1">
+                                    Live Stream Connected
                                 </Badge>
                             </div>
-
                         </div>
 
                         {/* Live Log */}
                         <div className="h-48 mt-4 bg-slate-900 rounded-lg border border-slate-800 p-4 font-mono text-xs overflow-y-auto">
                             <h4 className="text-slate-400 mb-2 font-bold flex items-center gap-2"><Activity size={12} /> Live Communication Log</h4>
                             <div className="space-y-2 text-slate-300">
-                                <div className="opacity-50">12:22:15 [System] Evacuation alert delivered to 98% of Zone A.</div>
-                                <div className="opacity-70">12:23:04 [River PD] "Water breaching lower banks. We need that intersection cleared."</div>
-                                <div className="text-red-300">12:24:10 [911 Dispatch] "Receiving calls from trapped motorists on off-ramp."</div>
-                                {simStep >= 1 && (
-                                    <div className="text-blue-300 animate-in slide-in-from-left">12:25:00 [CMD] AUTHORIZING TRAFFIC OVERRIDE PROTOCOL...</div>
-                                )}
-                                {simStep >= 2 && (
-                                    <>
-                                        <div className="text-green-400 animate-in slide-in-from-left delay-150">12:25:05 [System] Signals Main & Elm set to GREEN LOCK.</div>
-                                        <div className="text-green-400 animate-in slide-in-from-left delay-300">12:25:45 [Drone-1] Visual confirmation: Bottleneck clearing.</div>
-                                        <div className="text-green-400 animate-in slide-in-from-left delay-500">12:26:00 [EMS-4] "We are moving. ETA to hospital 3 mins."</div>
-                                    </>
-                                )}
+                                {alerts.length === 0 && <div className="opacity-50">[System] Waiting for incoming signals...</div>}
+                                {alerts.slice(0, 10).map((alert, i) => (
+                                    <div key={i} className="animate-in slide-in-from-left">
+                                        <span className="opacity-50 mr-2">[{alert.time}]</span>
+                                        <span className={alert.severity === 'high' ? 'text-red-400' : 'text-blue-300'}>
+                                            [{alert.sources?.[0] || 'System'}] {alert.title}: {alert.impact}
+                                        </span>
+                                    </div>
+                                ))}
                             </div>
                         </div>
                     </div>

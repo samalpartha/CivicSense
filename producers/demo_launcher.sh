@@ -5,6 +5,14 @@ echo "🎬 CivicSense Live Demo Event Simulator"
 echo "========================================="
 echo ""
 
+# Try to activate backend venv if it exists
+if [ -f "../services/backend/venv/bin/activate" ]; then
+    echo "🐍 Activating existing backend virtual environment..."
+    source "../services/backend/venv/bin/activate"
+elif [ -f "venv/bin/activate" ]; then
+    source "venv/bin/activate"
+fi
+
 # Check if .env exists
 if [ ! -f .env ]; then
     echo "❌ Error: .env file not found"

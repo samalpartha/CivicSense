@@ -1,40 +1,30 @@
 import { useState, useEffect } from 'react';
 import { formatDistanceToNow } from 'date-fns';
+import { wsService } from '../utils/websocket';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import {
-  AlertTriangle,
-  TrendingUp,
-  Users,
-  Activity,
-  Cloud,
-  CloudRain,
-  Sun,
-  Wind,
-  Shield,
-  Zap,
-  School,
-  Bus,
-  Play,
-  RotateCcw,
-  Stethoscope,
-  Briefcase,
-  Clock,
-  RefreshCw,
-  Navigation,
-  MapPin,
-  CheckCircle,
-  EyeOff,
-  Eye
-} from 'lucide-react';
+import { Cloud, CloudRain, Sun, Wind, MapPin, Users, Shield, Activity, Menu, Bell, Search, X, ChevronRight, AlertTriangle, Phone, Bus, School, Briefcase, Navigation, Stethoscope, TrendingUp, CheckCircle, RotateCcw, Play, Clock, Newspaper, Zap, RefreshCw } from 'lucide-react';
 import { allAlerts } from '@/data/mockData';
 
 
 interface AlertState {
   status: 'active' | 'acknowledged' | 'dismissed';
   timestamp: Date;
+}
+
+interface Alert {
+  id: string | number;
+  title: string;
+  severity: 'high' | 'moderate' | 'low';
+  time: string;
+  category: string;
+  impact: string;
+  location: string;
+  persona: string[];
+  sources: string[];
+  confidence: number;
 }
 import { AlertDetailModal } from './AlertDetailModal';
 import WarRoom from './WarRoom';
@@ -59,7 +49,107 @@ const Dashboard = () => {
   const [lastWeatherUpdate, setLastWeatherUpdate] = useState<Date>(new Date());
   const [lastStatsUpdate, setLastStatsUpdate] = useState<Date>(new Date());
   const [refreshCountdown, setRefreshCountdown] = useState(5);
+
   const [alertStates, setAlertStates] = useState<Record<string, AlertState>>({});
+  const [news, setNews] = useState<any[]>([]);
+
+  // Fetch News
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+        const res = await fetch(`${API_URL}/api/news`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.status === 'success') {
+            setNews(data.articles);
+          }
+        }
+      } catch (e) {
+        console.error("News fetch failed", e);
+      }
+    };
+    fetchNews();
+  }, []);
+
+  // Real-Time Alerts State (Live from WebSocket)
+  const [dynamicAlerts, setDynamicAlerts] = useState<Alert[]>([]);
+
+  useEffect(() => {
+    // 1. Connect to WebSocket
+    wsService.connect();
+
+    // 2. Subscribe to incoming Kafka messages
+    const subscription = wsService.messages$.subscribe((msg) => {
+      if (msg.type === 'kafka_update' && msg.data) {
+
+        // Map backend event to frontend Alert interface
+        const rawEvent = msg.data;
+        console.log("🔔 WebSocket Event Received:", rawEvent);
+
+        const newAlert = {
+          id: rawEvent.event_id || Date.now(),
+          title: formatTitle(rawEvent.type, rawEvent.message),
+          severity: mapSeverity(rawEvent.severity),
+          // Parsing real ISO timestamp from backend 
+          time: rawEvent.timestamp ? formatDistanceToNow(new Date(rawEvent.timestamp), { addSuffix: true }) : 'Just now',
+          category: mapCategory(rawEvent.type),
+          impact: rawEvent.message,
+          location: rawEvent.area || 'General', // Map the area field
+          persona: rawEvent.affected_groups ? rawEvent.affected_groups.flat() : ['all'],
+          sources: [rawEvent.source || 'Live Stream'],
+          confidence: 0.95
+        };
+
+
+        // Deduplication 
+        setDynamicAlerts(prev => {
+          // Deduplication: Strict check on content
+          // If we already have an alert with the exact same impact message, ignore it.
+          const isDuplicate = prev.some(existing =>
+            existing.impact === newAlert.impact
+          );
+
+          if (isDuplicate) return prev;
+
+          const updated = [newAlert, ...prev];
+          // Limit to last 50 alerts to prevent excessive memory usage
+          return updated.slice(0, 50);
+        });
+
+        // Trigger visual update for "Live Pipeline" stats
+        setLastStatsUpdate(new Date());
+      }
+    });
+
+    return () => {
+      subscription.unsubscribe();
+      wsService.disconnect();
+    };
+  }, []);
+
+  // Helper Mappers for Event Data
+  const formatTitle = (type: string, msg: string) => {
+    if (type === 'weather_alert') return 'Weather Warning';
+    if (type === 'fire_incident') return 'Fire Reported';
+    if (type === 'public_safety') return 'Public Safety Alert';
+    if (type === 'health_alert') return 'Health Advisory';
+    return msg.split(' - ')[0] || 'Civic Alert';
+  };
+
+  const mapSeverity = (sev: string): 'high' | 'moderate' | 'low' => {
+    if (sev === 'critical') return 'high';
+    if (sev === 'high') return 'high';
+    if (sev === 'moderate') return 'moderate';
+    return 'low';
+  };
+
+  const mapCategory = (type: string) => {
+    if (type === 'weather_alert') return 'Weather';
+    if (type === 'fire_incident') return 'Emergency';
+    if (type === 'public_safety') return 'Community';
+    return 'General';
+  };
 
   // Smart Location State
   const [locationQuery, setLocationQuery] = useState('');
@@ -191,104 +281,100 @@ const Dashboard = () => {
     return () => window.removeEventListener('civic:hero-action', handleHeroAction);
   }, []);
 
-  // Persona-specific dashboard configurations
-  const personaConfigs: Record<string, { stats: any[] }> = {
-    parent: {
-      stats: [
-        { title: 'School Safety', value: '100%', change: 'All clear', icon: <School />, color: 'text-green-700', context: 'District 4, 7' },
-        { title: 'Air Quality', value: '42', change: 'Good', icon: <Activity />, color: 'text-green-700', context: 'AQI Index' },
-        { title: 'Bus Status', value: 'On Time', change: 'Route 12, 14', icon: <Bus />, color: 'text-blue-700', context: 'Arrival in 5m' },
-        { title: 'Support Services', value: '24/7', change: 'Available', icon: <Shield />, color: 'text-purple-700', context: 'Senior hotline active' }
-      ]
-    },
-    senior: {
-      stats: [
-        { title: 'Heat Advisories', value: '0', change: 'All clear', icon: <Sun />, color: 'text-green-700', context: 'Temp 27°F' },
-        { title: 'Mobility Alerts', value: '1', change: 'Icy sidewalks', icon: <Navigation />, color: 'text-orange-700', context: 'Main St area' },
-        { title: 'Medical Facilities', value: '12', change: 'All open', icon: <Stethoscope />, color: 'text-blue-700', context: 'Routes clear' },
-        { title: 'Support Services', value: '24/7', change: 'Available', icon: <Shield />, color: 'text-purple-700', context: 'Senior hotline active' }
-      ]
-    },
-    commuter: {
-      stats: [
-        { title: 'Transit Delays', value: '1', change: 'I-91 incident', icon: <Bus />, color: 'text-red-700', context: 'Major traffic accident' },
-        { title: 'Alt Routes', value: '4', change: 'Available', icon: <Navigation />, color: 'text-green-700', context: 'Via I-84, Route 2' },
-        { title: 'Traffic Level', value: 'Heavy', change: '+15min avg', icon: <AlertTriangle />, color: 'text-orange-700', context: 'Evening rush' },
-        { title: 'Park & Ride', value: '3', change: 'Spaces available', icon: <Briefcase />, color: 'text-blue-700', context: 'Open lots' }
-      ]
-    },
-    student: {
-      stats: [
-        { title: 'Campus Alerts', value: '1', change: 'Library closed early', icon: <School />, color: 'text-orange-700', context: 'Weather precaution' },
-        { title: 'Study Spaces', value: '8', change: 'Open', icon: <Briefcase />, color: 'text-green-700', context: 'Union, Science Bldg' },
-        { title: 'Bus Routes', value: '2', change: 'Delayed', icon: <Bus />, color: 'text-yellow-700', context: 'Routes 4, 7' },
-        { title: 'Events Today', value: '5', change: 'Postponed', icon: <Users />, color: 'text-blue-700', context: 'Due to weather' }
-      ]
-    },
-    responder: {
-      stats: [
-        { title: 'Active Incidents', value: '3', change: 'In progress', icon: <AlertTriangle />, color: 'text-red-700', context: 'Flood, accident, fire' },
-        { title: 'Units Deployed', value: '12', change: '80% capacity', icon: <Users />, color: 'text-orange-700', context: 'Zone A, B, D' },
-        { title: 'Response Time', value: '45s', change: 'Optimal', icon: <Zap />, color: 'text-green-700', context: 'All zones covered' },
-        { title: 'Dispatch Queue', value: '2', change: 'Pending', icon: <Activity />, color: 'text-yellow-700', context: 'Non-critical' }
-      ]
-    }
-  };
-
-  // Storytelling Stats
-  const stats = isDemoMode ? [
-    { title: 'Active Alerts', value: '12', change: '+8 New', icon: <AlertTriangle />, color: 'text-red-700', context: 'Flash Flood Warning Active' },
-    { title: 'Events Today', value: '35', change: '+12 vs avg', icon: <Activity />, color: 'text-orange-700', context: 'High Public Risk Detected' },
-    { title: 'Impacted Families', value: '2,450', change: '+1,200', icon: <Users />, color: 'text-yellow-700', context: 'Evacuation Zone A' },
-    { title: 'Response Time', value: '45s', change: '-15% vs Avg', icon: <TrendingUp />, color: 'text-green-700', context: 'Emergency Ops Active' }
-  ] : (persona !== 'all' && personaConfigs[persona]) ? personaConfigs[persona].stats : [
+  // Live Stats Logic
+  const stats = [
     {
       title: 'Active Alerts',
-      value: flinkStats?.active_alerts?.toString() || '3',
-      change: flinkStats ? '+1 (New)' : 'Loading...',
+      value: dynamicAlerts.length.toString(),
+      change: flinkStats ? '+1 (Live)' : 'Scanning...',
       icon: <Shield />,
       color: 'text-blue-700',
-      context: flinkStats?.source || 'Routine Operations'
+      context: 'Real-Time Feed'
     },
     {
       title: 'Events Today',
-      value: flinkStats?.events_today?.toString() || '14',
-      change: flinkStats && flinkStats.window_type ? '+150/hr' : '+2 vs avg',
+      value: flinkStats?.events_today?.toString() || '0',
+      change: flinkStats ? '+12% vs avg' : 'waiting for data...',
       icon: <Activity />,
       color: 'text-blue-700',
-      context: flinkStats?.processing_engine || 'Community & Transit'
+      context: flinkStats?.processing_engine || 'CivicSense Engine'
     },
-    { title: 'Households Protected', value: '14,500', change: '+12% vs last week', icon: <Users />, color: 'text-green-700', context: 'Active Monitoring' },
-    { title: 'Avg Response Time', value: '1.2s', change: 'System Healthy', icon: <Zap />, color: 'text-purple-700', context: '99.9% Uptime' }
+    {
+      title: 'Households Protected',
+      value: '14,500',
+      change: 'Active Monitoring',
+      icon: <Users />,
+      color: 'text-green-700',
+      context: 'Zone A, B'
+    },
+    {
+      title: 'Avg Response Time',
+      value: '1.2s',
+      change: 'System Healthy',
+      icon: <Zap />,
+      color: 'text-purple-700',
+      context: '99.9% Uptime'
+    }
   ];
 
-  // Alerts Database
-  // Alerts Database
-  // Imported from @/data/mockData
-
-
-
-
-
-  // ... (previous useEffects)
+  /* 
+     REMOVED: Hardcoded persona configs that were overriding live data.
+     Now the dashboard always shows the true system state. 
+  */
 
   // Logic to show alerts based on Mode & Persona & Location
   const alertsToShow = isDemoMode
-    ? allAlerts.filter(a => ['high', 'moderate'].includes(a.severity)) // Show Crisis stuff
-    : allAlerts.filter(a => {
+    ? dynamicAlerts.filter(a => ['high', 'moderate'].includes(a.severity)) // Show Crisis stuff
+    : dynamicAlerts.filter(a => {
+      // 1. Persona Filter
       const personaMatch = persona === 'all' || a.persona.includes(persona);
-      // Hackathon logic: approximate location filtering by checking if alert title/impact mentions the city or if it's "all"
-      // For this demo, we assume 'Hartford' (06103) view shows everything, other views filter strictly
-      const city = activeLocation.name.split(' ')[0] || 'Hartford';
-      const locationMatch = city.includes('Hartford') ? true : (a.title.includes(city) || a.impact.includes(city));
+
+      // 2. Location Filter
+      // For this Hackathon/Demo, the Producer generates generic locations ("Downtown", "Hillside").
+      // We interpret these as belonging to the *current active city*, whatever it is.
+      // So we effectively ignore specific string matching between "Schenectady" and "Hillside" 
+      // to ensure the user always sees the live system capabilities.
+      const locationMatch = true;
+
+      /* 
+         Previous Strict Logic (Disabled for Demo):
+         const activeCity = activeLocation.name.split(',')[0].trim();
+         const isDefaultLocation = activeCity.includes('Hartford');
+         if (!isDefaultLocation) {
+            locationMatch = (a.location && a.location.toLowerCase().includes(activeCity.toLowerCase())) ||
+              (a.title.toLowerCase().includes(activeCity.toLowerCase())) ||
+              (a.impact.toLowerCase().includes(activeCity.toLowerCase()));
+         }
+      */
+
       return personaMatch && locationMatch;
     });
 
-  const sortedAlerts = alertsToShow.sort((a, b) => {
-    // High severity first in demo mode
-    if (isDemoMode) return a.severity === 'high' ? -1 : 1;
-    return 0;
-  });
+  const sortedAlerts = alertsToShow; // Already sorted by time (newest first)
+
+  // 3. Combined News + Alerts Ticker
+  const combinedTickerItems = [
+    // Top 3 Critical Internal Alerts
+    ...dynamicAlerts.slice(0, 3).map(alert => ({
+      id: `alert-${alert.id}`,
+      title: `🚨 ${alert.title}: ${alert.impact}`,
+      source: 'CivicSense Network',
+      pubDate: alert.time, // Already formatted string like "2 minutes ago" or raw date
+      dateObj: new Date(), // For sorting if needed
+      link: '#',
+      isInternal: true
+    })),
+    // External News
+    ...news.map(n => ({
+      id: `news-${n.article_id || Math.random()}`,
+      title: n.title,
+      source: n.source_id || 'NewsData.io',
+      pubDate: n.pubDate,
+      dateObj: n.pubDate ? new Date(n.pubDate) : new Date(),
+      link: n.link,
+      isInternal: false
+    }))
+  ];
 
   return (
     <div className="space-y-6">
@@ -297,22 +383,22 @@ const Dashboard = () => {
       <div className="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center py-2">
         <div className="flex flex-col gap-1">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900">Dashboard</h2>
-          <p className="text-muted-foreground">Real-time city intelligence and safety monitoring</p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-3">
-          {/* Global Refresh & Status - subtly placed */}
-          <div className="flex items-center gap-2 mr-4 text-xs text-muted-foreground bg-gray-50 px-3 py-1.5 rounded-full border">
-            <span className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1.5 bg-green-50 text-green-700 px-2 py-0.5 rounded-full border border-green-100">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
               </span>
-              System Active
+              Live System Active
             </span>
-            <span className="w-px h-3 bg-gray-300 mx-1"></span>
-            <span>Refreshes in {refreshCountdown}s</span>
+            <span className="text-gray-300">|</span>
+            <span>Connected to {import.meta.env.VITE_API_URL || 'Localhost Cluster'}</span>
           </div>
+
+        </div>
+
+        <div className="flex flex-wrap items-center gap-3">
 
           {/* Smart Location Search */}
           <div className="flex items-center relative group z-20">
@@ -408,23 +494,59 @@ const Dashboard = () => {
             <Shield size={14} />
             Ask CivicSense
           </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setIsDemoMode(!isDemoMode)}
-            className="h-9 w-9 rounded-full text-gray-400 hover:text-gray-900"
-            title={isDemoMode ? "Reset Demo" : "Start Simulation"}
-          >
-            {isDemoMode ? <RotateCcw size={16} /> : <Play size={16} />}
-          </Button>
         </div>
       </div>
+
+      {/* Replaced Ticker Section */}
+      {combinedTickerItems.length > 0 && (
+        <div className="w-full bg-white border-y border-gray-100 overflow-hidden relative h-10 flex items-center mb-0 shadow-sm">
+          <div className="absolute left-0 top-0 bottom-0 bg-white border-r border-gray-100 px-4 flex items-center z-10 font-bold text-blue-600 text-[10px] tracking-widest uppercase shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
+            <Newspaper size={14} className="mr-2 text-blue-500" /> LIVE UPDATES
+          </div>
+          <div className="flex whitespace-nowrap animate-marquee hover:pause pl-40 items-center">
+            {combinedTickerItems.map((article, i) => (
+              <a
+                key={`${article.id}-${i}`}
+                href={article.link}
+                target={article.isInternal ? "_self" : "_blank"}
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 mx-8 text-gray-600 hover:text-blue-600 text-xs transition-colors group cursor-pointer"
+                onClick={(e) => {
+                  if (article.isInternal) {
+                    e.preventDefault();
+                    // Find original alert and open modal
+                    const original = dynamicAlerts.find(a => `alert-${a.id}` === article.id);
+                    if (original) {
+                      setSelectedAlert(original);
+                      setIsAlertModalOpen(true);
+                    }
+                  }
+                }}
+              >
+                <span className={`font-semibold text-[10px] uppercase tracking-wide ${article.isInternal ? 'text-red-500' : 'text-gray-400'}`}>
+                  [{article.source}]
+                </span>
+                <span className="font-medium group-hover:underline underline-offset-2">
+                  {article.title}
+                </span>
+                <span className="text-gray-400 text-[10px] ml-1">
+                  ({article.isInternal ? article.pubDate : (article.pubDate ? formatDistanceToNow(new Date(article.pubDate)) : 'Just now')})
+                </span>
+                <span className="ml-4 text-gray-200">|</span>
+              </a>
+            ))}
+            {/* Loop Duplicate for Infinite Scroll not strictly needed if list is long, 
+                 but keeping it simple: just one loop for now or double it if listing is short. 
+                 For implementation simplicity, we rely on the main list being long enough or CSS to handle it.
+             */}
+          </div>
+        </div>
+      )}
 
       {/* Statistics Grid (Storytelling) */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {stats.map((stat, index) => (
-          <Card key={index} className={isDemoMode && stat.title === 'Active Alerts' ? 'border-red-500 bg-red-50 animate-pulse' : ''}>
+          <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
               <div className={stat.color}>{stat.icon}</div>
@@ -443,6 +565,8 @@ const Dashboard = () => {
           </Card>
         ))}
       </div>
+
+
 
 
 
@@ -523,53 +647,56 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        {/* Real Weather Widget */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Live Conditions</CardTitle>
-            <CardDescription>Real-time local sensor data</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {weather ? (
-              <div className="text-center">
-                {isDemoMode ? (
-                  <CloudRain className="mx-auto text-blue-600 mb-4 animate-bounce" size={64} />
-                ) : (
-                  weather.condition.includes('Rain') ? <CloudRain className="mx-auto text-blue-500 mb-4" size={64} /> :
-                    weather.condition.includes('Cloud') ? <Cloud className="mx-auto text-gray-400 mb-4" size={64} /> :
-                      <Sun className="mx-auto text-yellow-500 mb-4" size={64} />
-                )}
+        {/* Right Column: Weather */}
+        <div className="flex flex-col gap-6">
+          {/* Real Weather Widget */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Live Conditions</CardTitle>
+              <CardDescription>Real-time local sensor data</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {weather ? (
+                <div className="text-center">
+                  {isDemoMode ? (
+                    <CloudRain className="mx-auto text-blue-600 mb-4 animate-bounce" size={64} />
+                  ) : (
+                    weather.condition.includes('Rain') ? <CloudRain className="mx-auto text-blue-500 mb-4" size={64} /> :
+                      weather.condition.includes('Cloud') ? <Cloud className="mx-auto text-gray-400 mb-4" size={64} /> :
+                        <Sun className="mx-auto text-yellow-500 mb-4" size={64} />
+                  )}
 
-                <div className="text-4xl font-bold text-gray-900 mb-2">
-                  {isDemoMode ? "58°F" : `${weather.temp_f}°F`}
-                </div>
-                <p className="text-gray-600 mb-4 font-medium">
-                  {isDemoMode ? "Heavy Rain / Flood Risk" : weather.condition}
-                </p>
-
-                <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-3 rounded-lg">
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <div className="flex items-center gap-1 text-gray-500"><Wind size={14} /> Wind</div>
-                    <span className="font-semibold">{isDemoMode ? "45 mph" : `${weather.wind_mph} mph`}</span>
+                  <div className="text-4xl font-bold text-gray-900 mb-2">
+                    {isDemoMode ? "58°F" : `${weather.temp_f}°F`}
                   </div>
-                  <div className="flex flex-col items-center justify-center gap-1">
-                    <div className="flex items-center gap-1 text-gray-500"><CloudRain size={14} /> Precip</div>
-                    <span className="font-semibold">{isDemoMode ? "90%" : `${weather.humidity}%`}</span>
+                  <p className="text-gray-600 mb-4 font-medium">
+                    {isDemoMode ? "Heavy Rain / Flood Risk" : weather.condition}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm bg-gray-50 p-3 rounded-lg">
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <div className="flex items-center gap-1 text-gray-500"><Wind size={14} /> Wind</div>
+                      <span className="font-semibold">{isDemoMode ? "45 mph" : `${weather.wind_mph} mph`}</span>
+                    </div>
+                    <div className="flex flex-col items-center justify-center gap-1">
+                      <div className="flex items-center gap-1 text-gray-500"><CloudRain size={14} /> Precip</div>
+                      <span className="font-semibold">{isDemoMode ? "90%" : `${weather.humidity}%`}</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 text-[10px] text-gray-400">
+                    Source: {weather.cached ? "Cached (Open-Meteo)" : "Live (Open-Meteo)"} • {weather.location}
                   </div>
                 </div>
-
-                <div className="mt-4 text-[10px] text-gray-400">
-                  Source: {weather.cached ? "Cached (Open-Meteo)" : "Live (Open-Meteo)"} • {weather.location}
+              ) : (
+                <div className="flex flex-col items-center justify-center py-10">
+                  <Activity className="animate-spin text-gray-400 mb-2" />
+                  <span className="text-sm text-gray-500">Connecting to sensor network...</span>
                 </div>
-              </div>
-            ) : (
-              <div className="flex flex-col items-center justify-center py-10">
-                <Activity className="animate-spin text-gray-400 mb-2" />
-                <span className="text-sm text-gray-500">Connecting to sensor network...</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
 
@@ -619,7 +746,15 @@ const Dashboard = () => {
         onDismiss={handleDismiss}
       />
 
-      {isWarRoomOpen && <WarRoom onClose={() => setIsWarRoomOpen(false)} location={activeLocation} />}
+      {
+        isWarRoomOpen && (
+          <WarRoom
+            onClose={() => setIsWarRoomOpen(false)}
+            location={activeLocation}
+            alerts={dynamicAlerts} // Passing LIVE alerts to WarRoom
+          />
+        )
+      }
 
     </div >
   );

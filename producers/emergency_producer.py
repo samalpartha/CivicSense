@@ -26,49 +26,115 @@ conf = {
 producer = Producer(conf)
 
 # Event templates
-EMERGENCY_TYPES = [
-    {
-        "type": "weather_alert",
-        "severity_options": ["critical", "high", "moderate"],
-        "messages": [
-            "Severe thunderstorm warning in effect",
-            "Flash flood watch issued",
-            "Tornado warning - seek shelter immediately",
-            "Winter storm advisory active",
-            "Heat advisory in effect"
-        ]
-    },
-    {
-        "type": "fire_incident",
-        "severity_options": ["critical", "high"],
-        "messages": [
-            "Building fire reported - evacuate area",
-            "Wildfire spreading rapidly",
-            "Smoke advisory due to nearby fire",
-            "Fire contained but smoke present"
-        ]
-    },
-    {
-        "type": "public_safety",
-        "severity_options": ["high", "moderate", "low"],
-        "messages": [
-            "Police activity in progress - avoid area",
-            "Traffic accident blocking major intersection",
-            "Gas leak reported - evacuate immediately",
-            "Suspicious package investigation underway"
-        ]
-    },
-    {
-        "type": "health_alert",
-        "severity_options": ["moderate", "low"],
-        "messages": [
-            "Air quality alert - sensitive groups take precautions",
-            "Water quality advisory in effect",
-            "Pollen count extremely high",
-            "COVID-19 testing site open today"
-        ]
-    }
-]
+# Seasonal Logic
+current_month = datetime.now().month
+is_winter = current_month in [12, 1, 2]
+is_summer = current_month in [6, 7, 8]
+
+EMERGENCY_TYPES = []
+
+if is_winter:
+    EMERGENCY_TYPES.extend([
+        {
+            "type": "weather_alert",
+            "severity_options": ["critical", "high", "moderate"],
+            "messages": [
+                "Winter storm warning - heavy snow expected",
+                "Black ice reported on bridges",
+                "Code Blue: Extreme cold emergency",
+                "Frozen pipe burst risk - take precautions"
+            ]
+        },
+        {
+            "type": "public_safety",
+            "severity_options": ["high", "moderate"],
+            "messages": [
+                "Heating center open at Community Hall",
+                "Vehicle pileup due to icy roads",
+                "Power outage reported in North End (Heating Risk)"
+            ]
+        },
+        {
+            "type": "health_alert",
+            "severity_options": ["moderate"],
+            "messages": [
+                "Flu activity high in this zone",
+                "Carbon Monoxide warning - check detectors",
+                "Slippery sidewalk advisory"
+            ]
+        }
+    ])
+elif is_summer:
+    EMERGENCY_TYPES.extend([
+        {
+            "type": "weather_alert",
+            "severity_options": ["critical", "high", "moderate"],
+            "messages": [
+                "Severe thunderstorm warning in effect",
+                "Flash flood watch issued",
+                "Tornado warning - seek shelter immediately",
+                "Heat advisory in effect - cooling centers open"
+            ]
+        },
+        {
+            "type": "fire_incident",
+            "severity_options": ["critical", "high"],
+            "messages": [
+                "Brush fire reported near highway",
+                "Red Flag Warning: High fire danger"
+            ]
+        },
+        {
+            "type": "health_alert",
+            "severity_options": ["moderate", "low"],
+            "messages": [
+                "Air quality alert (Ozone)",
+                "Pollen count extremely high",
+                "Dehydration risk advisory"
+            ]
+        }
+    ])
+else:
+    # Fall/Spring generic
+    EMERGENCY_TYPES.extend([
+        {
+            "type": "weather_alert",
+            "severity_options": ["high", "moderate"],
+            "messages": [
+                "Heavy rain warning",
+                "High wind advisory",
+                "Flood watch in low-lying areas"
+            ]
+        },
+        {
+            "type": "public_safety",
+            "severity_options": ["high", "moderate", "low"],
+            "messages": [
+                "Police activity in progress",
+                "Traffic accident - major delays",
+                "Construction road closure"
+            ]
+        }
+    ])
+
+# Always add generic emergencies regardless of season
+EMERGENCY_TYPES.append({
+    "type": "fire_incident",
+    "severity_options": ["critical", "high"],
+    "messages": [
+        "Building fire reported",
+        "Smoke condition investigation"
+    ]
+})
+EMERGENCY_TYPES.append({
+    "type": "public_safety",
+    "severity_options": ["high", "moderate"],
+    "messages": [
+        "Gas leak reported",
+        "Water main break",
+        "Traffic signal malfunction"
+    ]
+})
 
 AREAS = [
     "Downtown", "Midtown", "Uptown", "Eastside", "Westside",

@@ -1,6 +1,7 @@
 """
 Impact Agent - Assesses severity and affected areas.
 """
+
 import json
 from typing import Dict, List
 
@@ -13,7 +14,7 @@ class ImpactAgent(BaseAgent):
     Determines the severity and scope of civic events.
     Identifies affected population segments and geographic areas.
     """
-    
+
     def __init__(self):
         super().__init__("ImpactAgent")
         self.system_instruction = """You are an impact assessment specialist.
@@ -31,21 +32,16 @@ Respond ONLY with valid JSON in this format:
   "time_sensitive": true/false,
   "estimated_impact": "brief description"
 }"""
-    
-    async def assess(
-        self,
-        query: str,
-        category: str,
-        context: Dict = None
-    ) -> Dict:
+
+    async def assess(self, query: str, category: str, context: Dict = None) -> Dict:
         """
         Assess impact of a civic event or query.
-        
+
         Args:
             query: User's question
             category: Category from triage
             context: Optional context
-            
+
         Returns:
             Impact assessment with severity and affected areas
         """
@@ -53,25 +49,27 @@ Respond ONLY with valid JSON in this format:
             context_str = ""
             if context:
                 context_str = f"\n\nContext: {json.dumps(context, indent=2)}"
-            
+
             prompt = f"""Assess the impact of this civic query:
 
 Category: {category}
 Query: "{query}"{context_str}
 
 Provide impact assessment as JSON."""
-            
+
             response = await self.call_gemini(
                 prompt=prompt,
                 system_instruction=self.system_instruction,
-                temperature=0.4
+                temperature=0.4,
             )
-            
+
             result = self._parse_response(response)
-            logger.info(f"Impact assessed: severity={result['severity']}, areas={len(result.get('affected_areas', []))}")
-            
+            logger.info(
+                f"Impact assessed: severity={result['severity']}, areas={len(result.get('affected_areas', []))}"
+            )
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Impact assessment failed: {e}")
             return {
@@ -79,9 +77,9 @@ Provide impact assessment as JSON."""
                 "affected_groups": ["general public"],
                 "affected_areas": [],
                 "time_sensitive": False,
-                "estimated_impact": "Unable to assess impact"
+                "estimated_impact": "Unable to assess impact",
             }
-    
+
     def _parse_response(self, response: str) -> Dict:
         """Parse and validate JSON response."""
         try:
@@ -94,17 +92,17 @@ Provide impact assessment as JSON."""
             if response.endswith("```"):
                 response = response[:-3]
             response = response.strip()
-            
+
             result = json.loads(response)
-            
+
             # Ensure lists are present
             if "affected_groups" not in result:
                 result["affected_groups"] = []
             if "affected_areas" not in result:
                 result["affected_areas"] = []
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"Failed to parse impact response: {e}")
             return {
@@ -112,10 +110,9 @@ Provide impact assessment as JSON."""
                 "affected_groups": [],
                 "affected_areas": [],
                 "time_sensitive": False,
-                "estimated_impact": "Parse error"
+                "estimated_impact": "Parse error",
             }
-    
+
     async def execute(self, query: str, category: str, context: Dict = None) -> Dict:
         """Execute method for base class compatibility."""
         return await self.assess(query, category, context)
-
