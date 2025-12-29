@@ -77,7 +77,8 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchWeather = async () => {
       try {
-        const res = await fetch('http://localhost:8081/api/weather?city=Hartford');
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+        const res = await fetch(`${API_URL}/api/weather?city=Hartford`);
         if (res.ok) {
           const data = await res.json();
           setWeather(data);
@@ -96,8 +97,10 @@ const Dashboard = () => {
   useEffect(() => {
     const fetchFlinkStats = async () => {
       try {
-        const res = await fetch('http://localhost:8081/api/stats/realtime');
+        const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+        const res = await fetch(`${API_URL}/api/stats/realtime`);
         if (res.ok) {
+          // ...
           const data = await res.json();
           setFlinkStats(data);
           setLastStatsUpdate(new Date());
