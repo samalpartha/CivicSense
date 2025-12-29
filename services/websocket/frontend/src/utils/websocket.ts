@@ -31,11 +31,11 @@ class WebSocketService {
     private reconnectAttempts: number = 0;
     private maxReconnectAttempts: number = 5;
     private reconnectDelay: number = 3000;
-    
+
     // RxJS Subject for reactive streams
     private messageSubject = new Subject<ChatMessage>();
     public messages$: Observable<ChatMessage> = this.messageSubject.asObservable();
-    
+
     private statusSubject = new Subject<'connecting' | 'connected' | 'disconnected'>();
     public status$: Observable<'connecting' | 'connected' | 'disconnected'> = this.statusSubject.asObservable();
 
@@ -55,10 +55,10 @@ class WebSocketService {
             return; // Already connected
         }
 
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        // Always connect to backend on port 8081
-        const host = 'localhost:8081';
-        const wsUrl = `${protocol}//${host}/ws/chat`;
+        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8081';
+        // Replace http/https with ws/wss
+        const wsBase = apiUrl.replace('http://', 'ws://').replace('https://', 'wss://');
+        const wsUrl = `${wsBase}/ws/chat`;
 
         console.log(`Connecting to WebSocket: ${wsUrl}`);
         this.statusSubject.next('connecting');
