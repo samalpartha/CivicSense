@@ -687,11 +687,11 @@ async def websocket_chat(websocket: WebSocket):
                         )
 
                     except Exception as e:
-                        logger.error(f"Error processing query stream: {e}")
+                        logger.error(f"Error processing query stream: {e}", exc_info=True)
                         await connection_manager.send_personal_message(
                             {
                                 "type": "error",
-                                "message": "I'm having trouble processing your question streaming. Please try again.",
+                                "message": f"Error: {str(e)}",
                             },
                             websocket,
                         )

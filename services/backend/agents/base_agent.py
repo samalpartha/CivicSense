@@ -123,8 +123,14 @@ class BaseAgent(ABC):
             )
             
             async for chunk in response:
-                if chunk.text:
-                    yield chunk.text
+                try:
+                    if chunk.text:
+                        yield chunk.text
+                except Exception:
+                    # If chunk.text fails (e.g. safety block), log and skip or yield empty string
+                    # Often "ValueError: The `text` field is only valid for..."
+                    logger.warning(f"{self.agent_name}: Chunk blocked or empty. Safety ratings: {chunk.prompt_feedback}")
+                    continue
 
         except Exception as e:
             logger.error(f"{self.agent_name} Gemini API stream failed: {e}")
