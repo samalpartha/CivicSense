@@ -72,8 +72,11 @@ const Dashboard = () => {
     fetchNews();
   }, []);
 
-  // Real-Time Alerts State (Live from WebSocket)
-  const [dynamicAlerts, setDynamicAlerts] = useState<Alert[]>([]);
+  // Real-Time Alerts State (Live from WebSocket + Mock Data)
+  const [dynamicAlerts, setDynamicAlerts] = useState<Alert[]>(allAlerts.map(alert => ({
+    ...alert,
+    location: 'Hartford', // Add default location for mock alerts
+  })));
 
   useEffect(() => {
     // 1. Connect to WebSocket
@@ -392,8 +395,6 @@ const Dashboard = () => {
               </span>
               Live System Active
             </span>
-            <span className="text-gray-300">|</span>
-            <span>Connected to {import.meta.env.VITE_API_URL || 'Localhost Cluster'}</span>
           </div>
 
         </div>
