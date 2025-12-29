@@ -15,6 +15,8 @@ COPY . .
 # For this setup, we'll assume the user will provide the backend URL later or we use a default.
 ARG VITE_API_URL
 ENV VITE_API_URL=$VITE_API_URL
+ENV CACHE_BUST=2
+RUN ls -R src/lib
 
 RUN npm run build
 
