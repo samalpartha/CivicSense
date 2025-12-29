@@ -29,7 +29,11 @@ gcloud run deploy civicsense-backend \
     --region $REGION \
     --platform managed \
     --allow-unauthenticated \
-    --memory 1Gi
+    --memory 2Gi \
+    --cpu 2 \
+    --min-instances 1 \
+    --max-instances 10 \
+    --execution-environment gen2
 
 # 3. Get Backend URL for Frontend Config
 BACKEND_URL=$(gcloud run services describe civicsense-backend --region $REGION --format 'value(status.url)')

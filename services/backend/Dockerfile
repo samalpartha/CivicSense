@@ -19,7 +19,6 @@ COPY . .
 # Expose port
 EXPOSE 8000
 
-# Run application
-# Run application
-CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080}
+# Run application with optimal workers
+CMD exec uvicorn main:app --host 0.0.0.0 --port ${PORT:-8080} --workers 2
 
