@@ -40,11 +40,7 @@ echo ""
 echo "🚀 [2/2] Deploying Frontend Service..."
 echo "-------------------------------------"
 
-# Pass the Backend URL to the frontend build via --build-arg
-gcloud builds submit \
-    --tag gcr.io/$PROJECT_ID/civicsense-frontend \
-    --substitutions=_VITE_API_URL="$BACKEND_URL" \
-    ./services/websocket/frontend
+
 
 # Note: Cloud Build substitutions don't directly map to Docker --build-arg unless specified in cloudbuild.yaml.
 # Since we are using automatic submission, we should use --build-arg if running docker build locally, 
