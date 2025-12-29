@@ -645,30 +645,53 @@ async def websocket_chat(websocket: WebSocket):
                     logger.info(f"Processing query: {user_message}")
 
                     try:
-                        # Get response from query handler
-                        response = await query_handler.process_query(
-                            user_message, context
-                        )
+                        # Process query with streaming
+                        async for update in query_handler.process_query_stream(user_message, context):
+                            
+                            if update["type"] == "metadata":
+                                # Send initial metadata (sources, severity)
+                                await connection_manager.send_personal_message(
+                                    {
+                                        "type": "response_start",
+                                        "severity": update["severity"],
+                                        "affected_areas": update["affected_areas"],
+                                        "sources": update["sources"],
+                                        "timestamp": datetime.now().isoformat()
+                                    },
+                                    websocket
+                                )
+                                
+                            elif update["type"] == "token":
+                                # Send text chunk
+                                await connection_manager.send_personal_message(
+                                    {
+                                        "type": "response_token",
+                                        "token": update["token"]
+                                    },
+                                    websocket
+                                )
+                            
+                            elif update["type"] == "error":
+                                await connection_manager.send_personal_message(
+                                    {
+                                        "type": "error",
+                                        "message": update["message"]
+                                    },
+                                    websocket
+                                )
 
-                        # Send response back to client
+                        # Send completion signal
                         await connection_manager.send_personal_message(
-                            {
-                                "type": "response",
-                                "message": response["answer"],
-                                "sources": response.get("sources", []),
-                                "severity": response.get("severity", "info"),
-                                "affected_areas": response.get("affected_areas", []),
-                                "timestamp": response.get("timestamp"),
-                            },
-                            websocket,
+                            {"type": "response_end"},
+                            websocket
                         )
 
                     except Exception as e:
-                        logger.error(f"Error processing query: {e}")
+                        logger.error(f"Error processing query stream: {e}")
                         await connection_manager.send_personal_message(
                             {
                                 "type": "error",
-                                "message": "I'm having trouble processing your question. Please try again.",
+                                "message": "I'm having trouble processing your question streaming. Please try again.",
                             },
                             websocket,
                         )

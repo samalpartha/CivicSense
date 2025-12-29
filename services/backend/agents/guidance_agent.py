@@ -107,6 +107,53 @@ Guidelines:
                 "sources_count": 0,
             }
 
+    async def generate_stream(
+        self,
+        query: str,
+        category: str,
+        impact: Dict,
+        knowledge: List[Dict],
+        context: Dict = None,
+    ):
+        """
+        Generate guidance response stream.
+        Yields text chunks.
+        """
+        try:
+            # Build context from knowledge base
+            knowledge_context = self._build_knowledge_context(knowledge)
+
+            # Determine user type
+            user_type = context.get("user_type", "general") if context else "general"
+            active_alerts = context.get("active_alerts", []) if context else []
+
+            # Build prompt
+            prompt = self._build_prompt(
+                query=query,
+                category=category,
+                impact=impact,
+                knowledge_context=knowledge_context,
+                user_type=user_type,
+                active_alerts=active_alerts,
+            )
+
+            # Generate stream
+            async for chunk in self.call_gemini_stream(
+                prompt=prompt,
+                system_instruction=self.system_instruction,
+                temperature=0.7,
+                max_tokens=512,
+            ):
+                yield chunk
+
+        except Exception as e:
+            logger.error(f"Guidance stream failed: {e}")
+            # Fallback (non-streamed)
+            fallback = self._generate_fallback_response(
+                query, category, impact, user_type
+            )
+            yield fallback
+
     def _build_knowledge_context(self, knowledge: List[Dict]) -> str:
         """Build context string from knowledge base documents."""
         if not knowledge:

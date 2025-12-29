@@ -64,7 +64,43 @@ const ChatBox = ({ isOpen, onClose, autoQuery }: ChatBoxProps) => {
                     text: msg.message || 'Connected',
                     isUser: false
                 }]);
+            } else if (msg.type === 'response_start') {
+                // Initialize streaming message
+                setMessages(prev => [...prev, {
+                    text: '', // Empty intially
+                    isUser: false,
+                    severity: msg.severity,
+                    sources: msg.sources,
+                    timestamp: msg.timestamp,
+                    isStreaming: true
+                }]);
+                setIsLoading(false); // UI shows streaming message instead of loading bubble
+            } else if (msg.type === 'response_token') {
+                // Append token to last message
+                setMessages(prev => {
+                    const lastMsg = prev[prev.length - 1];
+                    if (lastMsg && !lastMsg.isUser) {
+                        return [
+                            ...prev.slice(0, -1),
+                            { ...lastMsg, text: lastMsg.text + msg.token }
+                        ];
+                    }
+                    return prev;
+                });
+            } else if (msg.type === 'response_end') {
+                // Finalize message (optional cleanup)
+                setMessages(prev => {
+                    const lastMsg = prev[prev.length - 1];
+                    if (lastMsg) {
+                        return [
+                            ...prev.slice(0, -1),
+                            { ...lastMsg, isStreaming: false }
+                        ];
+                    }
+                    return prev;
+                });
             } else if (msg.type === 'response') {
+                // Legacy non-streaming support
                 setMessages(prev => [...prev, {
                     text: msg.message || msg.answer || 'No response',
                     isUser: false,

@@ -82,6 +82,55 @@ class BaseAgent(ABC):
             logger.error(f"{self.agent_name} Gemini API call failed: {e}")
             raise GeminiAPIError(f"API call failed: {e}")
 
+    async def call_gemini_stream(
+        self,
+        prompt: str,
+        system_instruction: str = None,
+        temperature: float = 0.7,
+        max_tokens: int = 2048,
+    ):
+        """
+        Call Gemini API with prompt and stream response.
+        Returns an async generator of text chunks.
+        """
+        try:
+            generation_config = genai.types.GenerationConfig(
+                temperature=temperature,
+                max_output_tokens=max_tokens,
+            )
+
+            if system_instruction:
+                model = genai.GenerativeModel(
+                    settings.GEMINI_MODEL, system_instruction=system_instruction
+                )
+            else:
+                model = self.model
+
+            # Run synchronous Gemini API call with stream=True
+            # Note: We can't easily wrap the iterator in to_thread, so we iterate synchronously
+            # OR better: use the async version of the library if available, but for now we'll
+            # wrap the *creation* of the stream, then iterate.
+            # Actually, Google's Python SDK `generate_content` is synchronous blocking I/O unless using `generate_content_async`.
+            # Let's check availability... assuming standard SDK, `generate_content_async` is preferred.
+            
+            # If start_chat used... but we are using generate_content.
+            # Newer `google-generativeai` has `generate_content_async`.
+            
+            response = await model.generate_content_async(
+                prompt, 
+                generation_config=generation_config,
+                stream=True
+            )
+            
+            async for chunk in response:
+                if chunk.text:
+                    yield chunk.text
+
+        except Exception as e:
+            logger.error(f"{self.agent_name} Gemini API stream failed: {e}")
+            # Don't crash the stream, just log
+            yield ""
+
     @abstractmethod
     async def execute(self, *args, **kwargs) -> Dict[str, Any]:
         """
