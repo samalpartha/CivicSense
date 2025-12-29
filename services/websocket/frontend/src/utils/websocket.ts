@@ -6,8 +6,9 @@
 import { Subject, Observable } from 'rxjs';
 
 export interface ChatMessage {
-    type: 'query' | 'response' | 'status' | 'error' | 'system' | 'kafka_update';
+    type: 'query' | 'response' | 'status' | 'error' | 'system' | 'kafka_update' | 'response_start' | 'response_token' | 'response_end';
     message?: string;
+    token?: string;
     answer?: string;
     sources?: string[];
     severity?: string;
