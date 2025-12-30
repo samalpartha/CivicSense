@@ -201,6 +201,14 @@ const Dashboard = () => {
     }
   };
 
+  // Broadcast location changes to AI Assistant Button (floating)
+  useEffect(() => {
+    const event = new CustomEvent('civic:location-update', {
+      detail: { activeLocation: activeLocation }
+    });
+    window.dispatchEvent(event);
+  }, [activeLocation]);
+
   const handleAcknowledge = (id: string) => {
     setAlertStates(prev => ({
       ...prev,

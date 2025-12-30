@@ -21,8 +21,20 @@ const AiAssistantButton = () => {
         setActiveAlerts(e.detail.activeAlerts);
       }
     };
+
+    const handleLocationUpdate = (e: any) => {
+      if (e.detail?.activeLocation) {
+        setActiveLocation(e.detail.activeLocation);
+      }
+    };
+
     window.addEventListener('civic:open-chat', handleOpenChat);
-    return () => window.removeEventListener('civic:open-chat', handleOpenChat);
+    window.addEventListener('civic:location-update', handleLocationUpdate);
+
+    return () => {
+      window.removeEventListener('civic:open-chat', handleOpenChat);
+      window.removeEventListener('civic:location-update', handleLocationUpdate);
+    };
   }, []);
 
   return (
@@ -38,7 +50,7 @@ const AiAssistantButton = () => {
         onClose={() => {
           setIsChatOpen(false);
           setAutoQuery(undefined);
-          setActiveLocation(undefined);
+          // Do NOT clear activeLocation, so it persists for next open
         }}
         autoQuery={autoQuery}
         activeLocation={activeLocation}
