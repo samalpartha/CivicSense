@@ -122,7 +122,10 @@ async def lifespan(app: FastAPI):
         topics=[
             settings.KAFKA_TOPIC_IMPACT_SIGNALS, 
             settings.KAFKA_TOPIC_CHAT_OUTPUT,
-            settings.KAFKA_TOPIC_EMERGENCY
+            settings.KAFKA_TOPIC_EMERGENCY,
+            settings.KAFKA_TOPIC_INFRASTRUCTURE,
+            settings.KAFKA_TOPIC_TRANSIT,
+            settings.KAFKA_TOPIC_EDUCATION
         ]
     )
     asyncio.create_task(consume_kafka_messages())
