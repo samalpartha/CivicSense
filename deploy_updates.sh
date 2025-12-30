@@ -6,11 +6,20 @@ echo "   CivicSense Cloud Deployment Updater"
 echo "========================================================"
 
 # 0. Load Environment Variables
-if [ -f .env ]; then
+if [ -f services/backend/.env ]; then
+  source services/backend/.env
+  echo "✅ Loaded services/backend/.env"
+elif [ -f .env ]; then
   source .env
-  echo "✅ Loaded .env file"
+  echo "⚠️  Loaded root .env (ensure it has all backend vars)"
 else
   echo "⚠️  Warning: .env file not found. Secrets might be missing."
+fi
+
+# Load Frontend Environment Variables (for Map Key)
+if [ -f services/websocket/frontend/.env ]; then
+  source services/websocket/frontend/.env
+  echo "✅ Loaded services/websocket/frontend/.env"
 fi
 
 # 1. Verify GCloud Auth
@@ -42,7 +51,7 @@ gcloud run deploy civicsense-backend \
     --min-instances 1 \
     --max-instances 10 \
     --execution-environment gen2 \
-    --set-env-vars="GEMINI_API_KEY=${GCP_GEMINI_API_KEY},NEWSDATA_API_KEY=${NEWSDATA_API_KEY},GCP_PROJECT_ID=${PROJECT_ID},KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS},KAFKA_API_KEY=${KAFKA_API_KEY},KAFKA_API_SECRET=${KAFKA_API_SECRET},MONGO_URI=${MONGO_URI}"
+    --set-env-vars="GEMINI_API_KEY=${GEMINI_API_KEY},NEWSDATA_API_KEY=${NEWSDATA_API_KEY},GCP_PROJECT_ID=${PROJECT_ID},KAFKA_BOOTSTRAP_SERVERS=${KAFKA_BOOTSTRAP_SERVERS},KAFKA_API_KEY=${KAFKA_API_KEY},KAFKA_API_SECRET=${KAFKA_API_SECRET},MONGO_URI=${MONGO_URI},CORS_ORIGINS=*"
 
 # 3. Get Backend URL for Frontend Config
 BACKEND_URL=$(gcloud run services describe civicsense-backend --region $REGION --format 'value(status.url)')

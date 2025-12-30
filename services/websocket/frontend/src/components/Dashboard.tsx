@@ -257,7 +257,7 @@ const Dashboard = () => {
           const data = await res.json();
           setFlinkStats(data);
           setLastStatsUpdate(new Date());
-          console.log('📊 Flink stats updated:', data);
+          // console.log('📊 Flink stats updated:', data);
         }
       } catch (e) {
         console.error("Flink stats fetch failed", e);

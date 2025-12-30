@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { flushSync } from "react-dom";
 import { Bot } from "lucide-react";
 import ChatBox from "./ChatBox";
 
@@ -10,15 +11,19 @@ const AiAssistantButton = () => {
 
   useEffect(() => {
     const handleOpenChat = (e: any) => {
-      setIsChatOpen(true);
-      if (e.detail?.autoQuery) {
-        setAutoQuery(e.detail.autoQuery);
-      }
       if (e.detail?.activeLocation) {
-        setActiveLocation(e.detail.activeLocation);
+        // Force synchronous update to ensure ChatBox receives the new location immediately on mount
+        flushSync(() => {
+          setActiveLocation(e.detail.activeLocation);
+        });
       }
       if (e.detail?.activeAlerts) {
         setActiveAlerts(e.detail.activeAlerts);
+      }
+
+      setIsChatOpen(true);
+      if (e.detail?.autoQuery) {
+        setAutoQuery(e.detail.autoQuery);
       }
     };
 

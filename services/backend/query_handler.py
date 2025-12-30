@@ -4,7 +4,7 @@ Processes user queries using multiple AI agents and RAG.
 """
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional
 
 from config import settings
@@ -108,7 +108,7 @@ class QueryHandler:
                     doc.get("title", "Knowledge Base") for doc in search_results
                 ],
                 "confidence": triage_result.get("confidence", 0.0),
-                "timestamp": datetime.now().isoformat(),
+                "timestamp": datetime.now(timezone.utc).isoformat(),
                 "processing_time_ms": (datetime.now() - start_time).total_seconds()
                 * 1000,
             }

@@ -10,7 +10,7 @@ from contextlib import asynccontextmanager
 import asyncio
 import json
 from typing import Dict, Set
-from datetime import datetime
+from datetime import datetime, timezone
 import uvicorn
 
 from config import settings
@@ -357,7 +357,8 @@ async def update_flink_stats():
 async def get_realtime_stats():
     if not flink_consumer or not flink_consumer.is_running():
         return {
-            "error": "Flink consumer not initialized or not running",
+            "status": "fallback_mode_active",
+            "message": "Flink consumer not initialized (waiting for infrastructure)",
             "fallback_mode": True,
             "active_alerts": 3,
             "events_today": 14,
@@ -657,7 +658,7 @@ async def websocket_chat(websocket: WebSocket):
                                         "severity": update["severity"],
                                         "affected_areas": update["affected_areas"],
                                         "sources": update["sources"],
-                                        "timestamp": datetime.now().isoformat()
+                                        "timestamp": datetime.now(timezone.utc).isoformat()
                                     },
                                     websocket
                                 )
