@@ -486,7 +486,9 @@ const Dashboard = () => {
             onClick={() => {
               const event = new CustomEvent('civic:open-chat', {
                 detail: {
-                  autoQuery: `What immediate safety actions should I take in ${activeLocation.name} (${activeLocation.zip}) as a ${persona}?`
+                  autoQuery: `What immediate safety actions should I take in ${activeLocation.name} (${activeLocation.zip}) as a ${persona}?`,
+                  activeLocation: activeLocation,
+                  activeAlerts: sortedAlerts
                 }
               });
               window.dispatchEvent(event);

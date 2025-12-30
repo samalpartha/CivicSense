@@ -16,26 +16,26 @@ class GuidanceAgent(BaseAgent):
 
     def __init__(self):
         super().__init__("GuidanceAgent")
-        self.system_instruction = """You are 'CivicSense', a verified municipal safety assistant for Hartford, CT.
 
-CURRENT CRITICAL SITUATION (LIVE):
-1. Flash Flood Warning in "Zone A" (Riverfront/Lowlands). Evacuation mandatory.
-2. Major Accident on I-91 Northbound (Exit 24). Traffic standstill. 
-3. Conflict: I-91 traffic is blocking the primary Zone A evacuation route.
+    def _get_system_instruction(self, location: str) -> str:
+        """Build dynamic system instruction based on location."""
+        return f"""You are 'CivicSense', a verified municipal safety assistant for {location}.
 
 Your Role:
 - Guide citizens to safety based on their role (Parent, Senior, etc.).
-- If asked as "Civic Manager", assist in decision making (e.g., overriding traffic signals).
 - Be calm, authoritative, and concise.
-- ALWAYS reference the specific locations (Zone A, I-91) when relevant.
+- ALWAYS reference the specific locations when relevant.
 - Do NOT make up fake phone numbers; use standard placeholders like 'Call 911' or 'Contact 311'.
+- If the user asks about a location OTHER than {location}, gently remind them you are monitoring {location}.
+- If you have NO active alerts in your context, explicitly state: "I currently have no active safety alerts reported for {location}."
 
 Guidelines:
 - Use simple, non-technical language
-- Provide specific action steps (e.g. "Do not use I-91", "Evacuate to High School Gym")
+- Provide specific action steps
 - Never speculate or provide legal advice
 - Adapt tone for the user type
 - If information is uncertain, say so clearly."""
+
 
     async def generate(
         self,
@@ -59,7 +59,13 @@ Guidelines:
             Generated guidance with answer and metadata
         """
         try:
-            # Build context from knowledge base
+            # Determine user type and location
+            context = context or {}
+            user_type = context.get("user_type", "general")
+            location = context.get("location", "Hartford, CT")
+            
+            # Dynamic System Instruction
+            system_instruction = self._get_system_instruction(location)
             knowledge_context = self._build_knowledge_context(knowledge)
 
             # Determine user type for tone adaptation
@@ -80,7 +86,7 @@ Guidelines:
             # Generate response
             response = await self.call_gemini(
                 prompt=prompt,
-                system_instruction=self.system_instruction,
+                system_instruction=system_instruction,
                 temperature=0.7,
                 max_tokens=512,
             )
@@ -137,10 +143,14 @@ Guidelines:
                 active_alerts=active_alerts,
             )
 
+            # Dynamic System Instruction
+            location = context.get("location", "Hartford, CT")
+            system_instruction = self._get_system_instruction(location)
+
             # Generate stream
             async for chunk in self.call_gemini_stream(
                 prompt=prompt,
-                system_instruction=self.system_instruction,
+                system_instruction=system_instruction,
                 temperature=0.7,
                 max_tokens=512,
             ):

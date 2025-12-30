@@ -22,6 +22,9 @@ export interface ChatContext {
     location?: string;
     language?: string;
     active_alerts?: any[];
+    zip_code?: string;
+    city?: string;
+    coordinates?: { lat: number; lon: number };
 }
 
 type MessageHandler = (message: ChatMessage) => void;

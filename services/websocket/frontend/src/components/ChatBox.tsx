@@ -9,6 +9,13 @@ interface ChatBoxProps {
     isOpen: boolean;
     onClose: () => void;
     autoQuery?: string;
+    activeLocation?: {
+        name: string;
+        zip: string;
+        lat: number;
+        lon: number;
+    };
+    activeAlerts?: any[];
 }
 
 interface Message {
@@ -19,7 +26,7 @@ interface Message {
     timestamp?: string;
 }
 
-const ChatBox = ({ isOpen, onClose, autoQuery }: ChatBoxProps) => {
+const ChatBox = ({ isOpen, onClose, autoQuery, activeLocation, activeAlerts }: ChatBoxProps) => {
     const [message, setMessage] = useState("");
     const [messages, setMessages] = useState<Message[]>([
         {
@@ -39,6 +46,14 @@ const ChatBox = ({ isOpen, onClose, autoQuery }: ChatBoxProps) => {
     const [isConnected, setIsConnected] = useState(false);
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
+    const [currentAlerts, setCurrentAlerts] = useState<any[]>(activeAlerts || allAlerts);
+
+    useEffect(() => {
+        if (activeAlerts) {
+            setCurrentAlerts(activeAlerts);
+        }
+    }, [activeAlerts]);
+
     const scrollToBottom = () => {
         if (messagesEndRef.current) {
             messagesEndRef.current.scrollIntoView({ behavior: "smooth", block: "end" });
@@ -57,6 +72,25 @@ const ChatBox = ({ isOpen, onClose, autoQuery }: ChatBoxProps) => {
         // Subscribe to messages
         const messagesSub = wsService.messages$.subscribe((msg) => {
             console.log('Received message:', msg);
+
+            if (msg.type === 'kafka_update' && msg.data) {
+                console.log('ChatBox received live update:', msg.data);
+                // Map Kafka event to Alert format
+                const raw = msg.data;
+                const newAlert = {
+                    id: raw.event_id || Date.now(),
+                    title: raw.type ? raw.type.replace('_', ' ').toUpperCase() : 'ALERT',
+                    severity: raw.severity || 'moderate',
+                    time: 'Just now',
+                    category: raw.type || 'general',
+                    impact: raw.message || 'New incident reported',
+                    location: raw.area || 'General',
+                    persona: raw.affected_groups || ['all'],
+                    sources: ['Live Stream'],
+                    confidence: 1.0
+                };
+                setCurrentAlerts(prev => [newAlert, ...prev]);
+            }
 
             if (msg.type === 'system') {
                 setIsConnected(true);
@@ -164,7 +198,11 @@ const ChatBox = ({ isOpen, onClose, autoQuery }: ChatBoxProps) => {
         const sent = wsService.sendMessage(text, {
             user_type: 'general',
             language: 'en',
-            active_alerts: allAlerts
+            active_alerts: currentAlerts,
+            location: activeLocation ? `${activeLocation.name} (${activeLocation.zip})` : 'Hartford, CT',
+            zip_code: activeLocation?.zip,
+            city: activeLocation?.name,
+            coordinates: activeLocation ? { lat: activeLocation.lat, lon: activeLocation.lon } : undefined
         });
 
         if (!sent) {
@@ -198,73 +236,94 @@ const ChatBox = ({ isOpen, onClose, autoQuery }: ChatBoxProps) => {
                     </div>
                     <div>
                         <span className="font-semibold">CivicSense Assistant</span>
-                        <div className="flex items-center gap-1 text-xs opacity-90">
-                            <div className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-300' : 'bg-red-300'}`}></div>
-                            <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+                        <div className="flex items-center gap-2 text-xs opacity-90">
+                            <span className={`w-2 h-2 rounded-full ${isConnected ? 'bg-green-400' : 'bg-red-400'}`}></span>
+                            {isConnected ? 'Connected' : 'Disconnected'}
                         </div>
                     </div>
                 </div>
-                <button
-                    onClick={onClose}
-                    className="hover:bg-white/20 p-2 rounded-full transition-colors"
-                >
+                <button onClick={onClose} className="hover:bg-white/20 p-1 rounded-full transition-colors">
                     <X size={20} />
                 </button>
             </div>
 
-            <div className="h-[380px] overflow-y-auto p-4 space-y-4 bg-gray-50/50">
-                {messages.map((msg, index) => (
-                    <div
-                        key={index}
-                        className={`flex ${msg.isUser ? "justify-end" : "justify-start"} animate-fade-in`}
-                    >
-                        <div
-                            className={`max-w-[80%] p-3 rounded-2xl shadow-sm ${msg.isUser
-                                ? "bg-medical-primary text-white"
-                                : "bg-white text-gray-800"
-                                }`}
-                            style={{ whiteSpace: "pre-line" }}
-                        >
-                            <Markdown>{msg.text}</Markdown>
-                        </div>
-                    </div>
-                ))}
-                {isLoading && (
-                    <div className="flex justify-start animate-fade-in">
-                        <div className="bg-white p-3 rounded-2xl shadow-sm">
-                            <div className="flex space-x-2">
-                                <div className="w-2 h-2 bg-medical-primary rounded-full animate-bounce"
-                                    style={{ animationDelay: '0ms' }}></div>
-                                <div className="w-2 h-2 bg-medical-primary rounded-full animate-bounce"
-                                    style={{ animationDelay: '150ms' }}></div>
-                                <div className="w-2 h-2 bg-medical-primary rounded-full animate-bounce"
-                                    style={{ animationDelay: '300ms' }}></div>
-                            </div>
-                        </div>
-                    </div>
-                )}
-                <div ref={messagesEndRef} className="h-0" />
-            </div>
+            <div className="flex flex-col h-[calc(100%-80px)]">
+                <div className="flex-1 p-4 overflow-y-auto bg-gray-50/50">
+                    <div className="space-y-4">
+                        {messages.map((msg, index) => (
+                            <div key={index} className={`flex ${msg.isUser ? 'justify-end' : 'justify-start'}`}>
+                                <div
+                                    className={`max-w-[85%] p-4 rounded-2xl shadow-sm ${msg.isUser
+                                        ? 'bg-medical-primary text-white rounded-br-none'
+                                        : 'bg-white text-gray-800 border border-gray-100 rounded-bl-none'
+                                        }`}>
 
-            <form onSubmit={handleSubmit} className="p-4 border-t bg-white rounded-b-xl">
-                <div className="flex gap-2">
-                    <input
-                        type="text"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Type your message..."
-                        className="flex-1 p-3 border rounded-full focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all"
-                    />
-                    <button
-                        type="submit"
-                        className="bg-medical-primary text-white p-3 rounded-full hover:bg-medical-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        disabled={isLoading || !isConnected}
-                        title={!isConnected ? 'Connecting...' : 'Send message'}
-                    >
-                        <Send size={18} />
-                    </button>
+                                    {/* Helper Metadata (Severity) */}
+                                    {!msg.isUser && msg.severity && (
+                                        <div className={`mb-2 text-xs font-bold uppercase tracking-wider flex items-center gap-1
+                                            ${msg.severity === 'high' || msg.severity === 'critical' ? 'text-red-500' :
+                                                msg.severity === 'moderate' ? 'text-orange-500' : 'text-blue-500'}`}>
+                                            <AlertCircle size={12} />
+                                            {msg.severity} Severity
+                                        </div>
+                                    )}
+
+                                    {/* Message Body */}
+                                    <div className={`prose prose-sm max-w-none ${msg.isUser ? 'prose-invert' : ''}`}>
+                                        <Markdown>{msg.text}</Markdown>
+                                    </div>
+
+                                    {/* Streaming Indicator */}
+                                    {/* @ts-ignore */}
+                                    {msg.isStreaming && <span className="inline-block w-2 h-4 ml-1 bg-medical-primary animate-pulse">|</span>}
+
+
+                                    {/* Sources Footer */}
+                                    {!msg.isUser && msg.sources && msg.sources.length > 0 && (
+                                        <div className="mt-3 pt-3 border-t border-gray-100 flex flex-wrap gap-2 text-xs text-gray-500">
+                                            <span className="font-semibold">Sources:</span>
+                                            {msg.sources.map((src, i) => (
+                                                <span key={i} className="bg-gray-100 px-2 py-0.5 rounded text-gray-600">
+                                                    {src}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    )}
+
+                                    {/* Timestamp */}
+                                    {msg.timestamp && (
+                                        <div className={`text-[10px] mt-2 opacity-70 ${msg.isUser ? 'text-right' : 'text-left'}`}>
+                                            {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        ))}
+                        <div ref={messagesEndRef} />
+                    </div>
                 </div>
-            </form>
+
+                <form onSubmit={handleSubmit} className="p-4 bg-white border-t border-gray-100">
+                    <div className="flex gap-2">
+                        <input
+                            type="text"
+                            value={message}
+                            onChange={(e) => setMessage(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && !e.shiftKey && handleSubmit(e)}
+                            placeholder={isConnected ? "Type your message..." : "Connecting..."}
+                            disabled={!isConnected || isLoading}
+                            className="flex-1 px-4 py-2 border border-gray-200 rounded-full focus:outline-none focus:ring-2 focus:ring-medical-primary/20 focus:border-medical-primary transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        />
+                        <button
+                            type="submit"
+                            disabled={!message.trim() || !isConnected || isLoading}
+                            className="p-2 bg-medical-primary text-white rounded-full hover:bg-medical-secondary disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm"
+                        >
+                            <Send size={20} />
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
     );
 };
