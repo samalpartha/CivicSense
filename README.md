@@ -14,13 +14,17 @@
 
 ## 🎯 The Challenge
 
-Every day, cities generate thousands of alerts—emergency warnings, transit disruptions, infrastructure failures, school closures. But these alerts are:
-- **Fragmented** across multiple systems
-- **Generic** and not personalized
-- **Confusing** for vulnerable populations
-- **Delayed** due to batch processing
+Every day, cities generate massive streams of live data—from sensor networks and 911 feeds to weather patterns. Yet, current public safety infrastructure fails to turn this data into safety because it is:
 
-**Result**: Seniors miss warnings. Parents can't decide if school is safe. Workers are stranded by transit issues.
+Siloed & Static: Critical intelligence is trapped in fragmented systems that cannot aggregate data in motion.
+Context-Blind: Alerts are generic broadcasts lacking AI reasoning, failing to adapt to who is reading them.
+Too Slow: Reliance on legacy batch processing creates dangerous latency, missing the window for sub-second intervention.
+
+**Result**:
+
+Seniors are overwhelmed by confusing, unverified raw data.
+Parents lack specific, actionable guidance on school safety.
+First Responders arrive on scene without real-time situational intelligence.
 
 ---
 
