@@ -496,7 +496,7 @@ maap-confluent-gcp-qs-main/
 
 - **[Quick Start](./QUICKSTART.md)** - 5-minute setup guide
 - **[Chatbot Guide](./CHATBOT_GUIDE.md)** - Complete chatbot documentation
-- **[Presentation Script](./Documentation/DEMO_SCRIPT_OFFICIAL.md)** - Step-by-step walkthrough
+
 - **[Backend API](./services/backend/README.md)** - API documentation
 - **[Producers Guide](./producers/README.md)** - Event generators
 - **[Architecture](./IMPLEMENTATION_STATUS.md)** - Technical deep dive
@@ -589,12 +589,6 @@ We welcome contributions from the open source community!
 
 ---
 
-## 📞 Contact & Support
-
-**Enterprise Support**: support@civicsense.io
-**Documentation**: See `/Documentation/` folder
-
----
 
 ## 📄 License
 
