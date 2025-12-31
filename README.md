@@ -8,11 +8,11 @@
 [![Python](https://img.shields.io/badge/Python-3.11+-blue)](https://python.org)
 [![React](https://img.shields.io/badge/React-TypeScript-cyan)](https://react.dev)
 
-**Confluent Hackathon Submission** | [Demo Video](#) | [Live Demo (Frontend)](https://civicsense-frontend-108816008638.us-central1.run.app/) | [API Swagger (Backend)](https://civicsense-backend-108816008638.us-central1.run.app/docs) | [Documentation](./QUICKSTART.md)
+**Enterprise Public Safety Intelligence** | [Product Tour](#) | [Live Platform](https://civicsense-frontend-108816008638.us-central1.run.app/) | [API Swagger](https://civicsense-backend-108816008638.us-central1.run.app/docs) | [Documentation](./QUICKSTART.md)
 
 ---
 
-## 🎯 The Problem
+## 🎯 The Challenge
 
 Every day, cities generate thousands of alerts—emergency warnings, transit disruptions, infrastructure failures, school closures. But these alerts are:
 - **Fragmented** across multiple systems
@@ -34,7 +34,7 @@ Every day, cities generate thousands of alerts—emergency warnings, transit dis
 🔍 **MongoDB Atlas** - Vector search for RAG  
 💬 **WebSocket** - Instant delivery to citizens  
 
-### The Magic: AI on Data in Motion
+### The Engine: AI on Data in Motion
 
 ```
 Live Event → Kafka → Flink → AI Agents → Vector Search → Personalized Guidance
@@ -209,7 +209,7 @@ sequenceDiagram
 - Real-time event producers for emergency, transit, and infrastructure
 - Continuous data flow into Kafka topics
 - Burst mode simulation for crisis scenarios
-- **Demo**: See events flowing in Confluent Cloud console
+- **Visualization**: See events flowing in Confluent Cloud console
 
 ### 2. **Advanced Stream Processing with Flink SQL** ⚡⚡⚡
 - **Production-Ready Flink SQL Architecture**: 5-minute tumbling windows for real-time aggregations
@@ -259,7 +259,7 @@ GROUP BY area, severity, TUMBLE(timestamp, INTERVAL '5' MINUTES);
 ### 6. **World-Class UX Enhancements** ✨
 - **Mission-Driven Design**: Clear public-interest framing
 - **Persona-Based Filtering**: Parent, Student, Senior, Commuter, First Responder modes
-- **Demo Emergency Mode**: Simulates crisis scenarios with pulsing alerts
+- **Crisis Simulation Mode**: Simulates crisis scenarios with pulsing alerts
 - **Public Good Messaging**: Explicit civic impact statements
 - **Global Scale Positioning**: Built for municipal integration worldwide
 
@@ -268,7 +268,7 @@ GROUP BY area, severity, TUMBLE(timestamp, INTERVAL '5' MINUTES);
 ## 🚀 Quick Start
 
 ### Prerequisites
-- Confluent Cloud account (Trial code: `CONFLUENTDEV1`)
+- Confluent Cloud account (Enterprise or Standard)
 - MongoDB Atlas cluster
 - Google Cloud account with Gemini API
 - Python 3.11+
@@ -291,7 +291,7 @@ terraform init
 terraform apply
 ```
 
-### 3. Start Event Producers (NEW! 🔥)
+### 3. Start Event Producers
 
 ```bash
 cd producers
@@ -302,7 +302,7 @@ cp ../services/backend/.env .env
 ./demo_launcher.sh
 ```
 
-**This generates live events flowing into Kafka!**
+**This generates live events flowing into Kafka.**
 
 ### 4. Start Backend
 
@@ -333,7 +333,7 @@ Backend Health: http://localhost:8000/health
 
 ---
 
-## 🎬 Live Demo
+## 🎬 Live Scenario
 
 ### The "WOW" Moment
 
@@ -347,7 +347,7 @@ Backend Health: http://localhost:8000/health
 
 **That's AI reacting to data in motion!**
 
-### Demo Scenarios
+### Use Cases
 
 #### Emergency Response
 ```
@@ -427,7 +427,7 @@ CivicSense is designed for **Hyper-Scale Impact**. By moving away from manual di
 ### Performance Metrics
 - **Event-to-Insight Latency**: < 500ms
 - **Query Processing**: ~1.2s avg
-- **System Uptime**: 99.99% targeted target (Serverless)
+- **System Uptime**: 99.99% target (Serverless)
 - **WebSocket**: < 100ms delivery
 
 ### Scalability
@@ -441,7 +441,7 @@ CivicSense is designed for **Hyper-Scale Impact**. By moving away from manual di
 
 ```
 maap-confluent-gcp-qs-main/
-├── producers/              ⭐ NEW! Live event generators
+├── producers/              ⭐ Live event generators
 │   ├── emergency_producer.py
 │   ├── transit_producer.py
 │   ├── infrastructure_producer.py
@@ -453,24 +453,23 @@ maap-confluent-gcp-qs-main/
 │   │   └── ...
 │   └── websocket/frontend/ React TypeScript UI
 ├── infrastructure/         Terraform & Flink SQL
-│   ├── statements/         ⭐ NEW! Advanced Flink SQL
+│   ├── statements/         Advanced Flink SQL
 │   │   ├── civic-events-aggregated.sql
 │   │   └── real-time-severity-alerts.sql
 │   └── modules/            Confluent, GCP, MongoDB
 ├── Documentation/
 │   ├── QUICKSTART.md
 │   ├── CHATBOT_GUIDE.md
-│   ├── DEMO_SCRIPT.md
-│   ├── WINNING_STRATEGY.md ⭐ NEW!
+│   ├── DEMO_SCRIPT_OFFICIAL.md
 │   └── ...
 └── README.md              This file
 ```
 
 ---
 
-## 🏆 Why CivicSense Wins
+## 🏆 Why CivicSense Leads
 
-### 1. **Perfect Challenge Alignment**
+### 1. **Real-time Streaming First**
 - ✅ AI on real-time streaming data (not batch)
 - ✅ Confluent Cloud + Flink SQL + Kafka
 - ✅ Google Gemini AI integration
@@ -491,21 +490,13 @@ maap-confluent-gcp-qs-main/
 - Advanced Flink SQL with windowing
 - Production-ready code quality
 
-### 4. **Demo Excellence**
-- Live event generation
-- Visual data flow in Confluent Cloud
-- Real-time response adaptation
-- "WOW moment" engineered
-- Compelling narrative
-
 ---
 
 ## 📚 Documentation
 
 - **[Quick Start](./QUICKSTART.md)** - 5-minute setup guide
 - **[Chatbot Guide](./CHATBOT_GUIDE.md)** - Complete chatbot documentation
-- **[Demo Script](./DEMO_SCRIPT.md)** - Step-by-step demo walkthrough
-- **[Winning Strategy](./WINNING_STRATEGY.md)** - How to win the hackathon
+- **[Presentation Script](./Documentation/DEMO_SCRIPT_OFFICIAL.md)** - Step-by-step walkthrough
 - **[Backend API](./services/backend/README.md)** - API documentation
 - **[Producers Guide](./producers/README.md)** - Event generators
 - **[Architecture](./IMPLEMENTATION_STATUS.md)** - Technical deep dive
@@ -574,7 +565,7 @@ python3 emergency_producer.py --demo
 
 ---
 
-## 🌟 Future Enhancements
+## 🌟 Future Roadmap
 
 - [ ] Multi-language support (Spanish, Chinese, etc.)
 - [ ] Voice input/output integration
@@ -589,7 +580,7 @@ python3 emergency_producer.py --demo
 
 ## 🤝 Contributing
 
-This is a hackathon submission, but feedback is welcome!
+We welcome contributions from the open source community!
 
 1. Fork the repository
 2. Create a feature branch
@@ -600,9 +591,8 @@ This is a hackathon submission, but feedback is welcome!
 
 ## 📞 Contact & Support
 
-**Hackathon Questions**: gcpteam@confluent.io  
-**Trial Code**: CONFLUENTDEV1 (30-day Confluent Cloud trial)  
-**Documentation**: See `/Documentation/` folder  
+**Enterprise Support**: support@civicsense.io
+**Documentation**: See `/Documentation/` folder
 
 ---
 
@@ -614,28 +604,17 @@ See [LICENSE](./LICENSE) file.
 
 ## 🙏 Acknowledgments
 
-- **Confluent** for the streaming platform and hackathon opportunity
+- **Confluent** for the streaming platform
 - **Google Cloud** for Gemini AI capabilities
 - **MongoDB** for Atlas vector search
 - **Open Source Community** for amazing tools and libraries
 
 ---
 
-## 🏁 Ready to Win?
-
-1. ✅ Review **[WINNING_STRATEGY.md](./WINNING_STRATEGY.md)**
-2. ✅ Practice **[DEMO_SCRIPT.md](./DEMO_SCRIPT.md)**
-3. ✅ Test all producers and services
-4. ✅ Prepare Q&A responses
-5. ✅ Record demo video
-6. 🚀 **Submit and WIN!**
-
----
-
 <div align="center">
 
-**Built with ❤️ for the Confluent Hackathon**
+**CivicSense Enterprise**
 
-*Demonstrating true AI on Data in Motion*
+*True AI on Data in Motion*
 
 </div>

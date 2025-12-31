@@ -72,10 +72,16 @@ const Dashboard = () => {
     fetchNews();
   }, []);
 
+  // Smart Location State (Moved up for dependencies)
+  const [locationQuery, setLocationQuery] = useState('');
+  const [activeLocation, setActiveLocation] = useState({ name: 'Hartford, CT', zip: '06103', lat: 41.7658, lon: -72.6734 });
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+
   // Real-Time Alerts State (Live from WebSocket + Mock Data)
   const [dynamicAlerts, setDynamicAlerts] = useState<Alert[]>(allAlerts.map(alert => ({
     ...alert,
-    location: 'Hartford', // Add default location for mock alerts
+    severity: alert.severity as 'high' | 'moderate' | 'low',
+    location: activeLocation.name.split(',')[0], // Dynamic location
   })));
 
   useEffect(() => {
@@ -154,10 +160,7 @@ const Dashboard = () => {
     return 'General';
   };
 
-  // Smart Location State
-  const [locationQuery, setLocationQuery] = useState('');
-  const [activeLocation, setActiveLocation] = useState({ name: 'Hartford, CT', zip: '06103', lat: 41.7658, lon: -72.6734 });
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  // Demo Zip Code Map
 
   // Demo Zip Code Map
   const zipCodeMap: Record<string, { name: string, lat: number, lon: number }> = {

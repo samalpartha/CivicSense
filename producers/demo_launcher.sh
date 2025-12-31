@@ -44,20 +44,43 @@ PID_INFRASTRUCTURE=$!
 
 sleep 2
 
+# Start education producer in background
+echo "🎓 Starting Education Events Producer..."
+python3 education_producer.py --interval 20 &
+PID_EDUCATION=$!
+
+sleep 2
+
+# Start Impact Producer
+echo "⚠️  Starting Impact Signal Simulate..."
+python3 impact_producer.py &
+PID_IMPACT=$!
+
+sleep 2
+
+# Start Aggregated Stats Producer
+# echo "📈 Starting Aggregated Stats Simulate..."
+# python3 aggregated_producer.py &
+# PID_AGGREGATED=$!
+
+sleep 2
+
 echo ""
 echo "✅ All producers running!"
 echo "========================================="
-echo "PIDs:"
 echo "  Emergency: $PID_EMERGENCY"
 echo "  Transit: $PID_TRANSIT"
 echo "  Infrastructure: $PID_INFRASTRUCTURE"
+echo "  Education: $PID_EDUCATION"
+echo "  Impact: $PID_IMPACT"
+echo "  Aggregated: $PID_AGGREGATED"
 echo ""
 echo "Press Ctrl+C to stop all producers"
 echo "========================================="
 echo ""
 
 # Wait for user interrupt
-trap "echo ''; echo 'Stopping all producers...'; kill $PID_EMERGENCY $PID_TRANSIT $PID_INFRASTRUCTURE 2>/dev/null; echo '✅ All producers stopped'; exit 0" INT
+trap "echo ''; echo 'Stopping all producers...'; kill $PID_EMERGENCY $PID_TRANSIT $PID_INFRASTRUCTURE $PID_EDUCATION $PID_IMPACT $PID_AGGREGATED 2>/dev/null; echo '✅ All producers stopped'; exit 0" INT
 
 # Keep script running
 wait
