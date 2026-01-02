@@ -109,9 +109,14 @@ python3 emergency_producer.py --demo
 
 Required in `.env`:
 ```env
+# Kafka credentials
 KAFKA_BOOTSTRAP_SERVERS=your-server.confluent.cloud:9092
 KAFKA_API_KEY=your-api-key
 KAFKA_API_SECRET=your-api-secret
+
+# Redis (optional for producers, required for backend)
+REDIS_HOST=localhost
+REDIS_PORT=6379
 ```
 
 ## 📊 Event Schemas
@@ -248,6 +253,9 @@ python3 -c "from dotenv import load_dotenv; load_dotenv(); import os; print(os.g
 
 # Test connectivity
 telnet your-server.confluent.cloud 9092
+
+# Test Redis connection (from project root)
+python3 verify_redis.py
 ```
 
 ### Events not appearing in Kafka
