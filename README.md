@@ -78,7 +78,7 @@ graph TD
         FastAPIGateway[FastAPI Gateway]
         MultiAgent[Agent Orchestrator]
         VectorDB[MongoDB Atlas - Vector]
-        RedisCache[Redis - Cache & Rate Limit]
+        RedisCache["Redis - Cache & Rate Limit"]
     end
 
     User --> Web
