@@ -20,6 +20,7 @@ from kafka_consumer import KafkaConsumerManager
 from query_handler import QueryHandler
 from flink_consumer import FlinkAggregateConsumer
 from news_client import news_client
+from redis_client import redis_client
 from models import (
     QueryRequest,
     QueryResponse,
@@ -36,6 +37,8 @@ from models import (
 )
 from pydantic import BaseModel, Field
 from typing import List, Optional
+from fastapi import Depends
+from rate_limiter import RateLimiter
 
 
 # --- Enterprise Mock Models ---
@@ -117,6 +120,9 @@ async def lifespan(app: FastAPI):
     query_handler = QueryHandler()
     logger.info("Query handler initialized")
 
+    # Initialize Redis client
+    await redis_client.connect()
+
     # Initialize and start Kafka consumer
     kafka_consumer_manager = KafkaConsumerManager(
         topics=[
@@ -145,6 +151,7 @@ async def lifespan(app: FastAPI):
         kafka_consumer_manager.stop()
     if flink_consumer:
         flink_consumer.stop()
+    await redis_client.close()
     logger.info("Shutdown complete")
 
 
@@ -184,12 +191,13 @@ app = FastAPI(
 - **⚡ Flink SQL Analytics**: Sub-second event processing and aggregation.
 - **📡 Data in Motion**: Direct integration with Confluent Cloud Kafka.
 - **🎯 Context-Aware**: Adapts responses to user persona (Parent, Senior, Responder).
+- **🚀 High-Speed Caching**: Redis-integrated caching for weather/news and intelligent rate limiting.
 
 ## 🛠 Technology Stack
 
 - **Streaming**: Confluent Cloud (Kafka) + Apache Flink SQL
 - **AI/ML**: Google Vertex AI (Gemini 2.0 Flash) + Multi-Agent Orchestration
-- **Data Store**: MongoDB Atlas (Vector Search)
+- **Data Store**: MongoDB Atlas (Vector Search) + Redis (Cache & Rate Limit)
 - **API**: FastAPI (Async Python)
 
 ## 📊 Performance Metrics
@@ -223,9 +231,8 @@ app.add_middleware(
 )
 
 
-# Weather Caching
-weather_cache = {"data": None, "timestamp": 0, "city": ""}
-WEATHER_TTL = 300  # 5 minutes
+
+import json
 
 import httpx
 import time
@@ -247,19 +254,18 @@ import time
 async def get_weather(
     lat: float = 40.7128, lon: float = -74.0060, city: str = "New York"
 ):
-    global weather_cache
-    current_time = time.time()
+    redis_key = f"weather:{city.lower().replace(' ', '_')}"
 
-    # Check cache (simple implementation: cache by city for demo)
-    if (
-        weather_cache["data"]
-        and weather_cache["city"] == city
-        and (current_time - weather_cache["timestamp"] < WEATHER_TTL)
-    ):
-        logger.info(f"Returning cached weather for {city}")
-        response = weather_cache["data"]
-        response["cached"] = True
-        return response
+    # Check Redis cache
+    try:
+        cached_data = await redis_client.get(redis_key)
+        if cached_data:
+            logger.info(f"Returning cached weather for {city}")
+            response = json.loads(cached_data)
+            response["cached"] = True
+            return response
+    except Exception as e:
+        logger.warning(f"Redis get failed: {e}")
 
     try:
         async with httpx.AsyncClient() as client:
@@ -294,12 +300,11 @@ async def get_weather(
                 "cached": False,
             }
 
-            # Update cache
-            weather_cache = {
-                "data": weather_data,
-                "timestamp": current_time,
-                "city": city,
-            }
+            # Cache in Redis for 5 minutes
+            try:
+                await redis_client.set(redis_key, json.dumps(weather_data), expire=300)
+            except Exception as e:
+                logger.warning(f"Redis set failed: {e}")
 
             return weather_data
 
@@ -738,6 +743,7 @@ async def websocket_chat(websocket: WebSocket):
     response_model=QueryResponse,
     tags=["Query"],
     summary="Submit a civic query",
+    dependencies=[Depends(RateLimiter(times=5, seconds=60))],  # 5 requests per minute
     description="""
     Process a user query using CivicSense's multi-agent AI system.
     

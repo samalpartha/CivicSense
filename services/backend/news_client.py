@@ -4,6 +4,8 @@ import time
 from typing import Dict, Any, List
 from config import settings
 from logger import logger
+from redis_client import redis_client
+import json
 
 class NewsClient:
     """
@@ -16,10 +18,6 @@ class NewsClient:
 
     def __init__(self):
         self.api_key = settings.NEWSDATA_API_KEY
-        self.cache: Dict[str, Any] = {
-            "data": [],
-            "timestamp": 0
-        }
     
     async def get_latest_news(self, query: str = "safety OR emergency OR traffic OR transit", country: str = "us") -> List[Dict[str, Any]]:
         """
@@ -30,12 +28,16 @@ class NewsClient:
             logger.warning("NewsData API Key not configured. Returning empty list.")
             return []
 
-        current_time = time.time()
+        redis_key = f"news:{hash(query)}:{country}"
         
-        # Check Cache
-        if (current_time - self.cache["timestamp"]) < self.CACHE_TTL and self.cache["data"]:
-            logger.info("Returning cached news data.")
-            return self.cache["data"]
+        # Check Redis Cache
+        try:
+            cached_data = await redis_client.get(redis_key)
+            if cached_data:
+                logger.info("Returning cached news data (Redis).")
+                return json.loads(cached_data)
+        except Exception as e:
+            logger.warning(f"Redis get failed: {e}")
 
         # Fetch Live Data
         try:
@@ -57,7 +59,9 @@ class NewsClient:
                 
                 if response.status_code == 429:
                     logger.warning("NewsData Rate Limit Exceeded.")
-                    return self.cache["data"] # Return stale data if rate limited
+                    # If we have staled data in redis, we could return it, but simple get passed expired already.
+                    # In a robust system, we might double-cache (stale vs fresh).
+                    return [] 
 
                 response.raise_for_status()
                 data = response.json()
@@ -79,10 +83,11 @@ class NewsClient:
                     ]
                     
                     # Update Cache
-                    self.cache = {
-                        "data": simplified_articles,
-                        "timestamp": current_time
-                    }
+                    # Update Cache (Redis)
+                    try:
+                        await redis_client.set(redis_key, json.dumps(simplified_articles), expire=self.CACHE_TTL)
+                    except Exception as e:
+                        logger.warning(f"Redis set failed: {e}")
                     
                     logger.info(f"Fetched {len(simplified_articles)} articles.")
                     return simplified_articles
@@ -92,7 +97,7 @@ class NewsClient:
 
         except Exception as e:
             logger.error(f"Failed to fetch news: {e}")
-            return self.cache["data"] # Fallback to cache on error
+            return []
 
 # Singleton instance
 news_client = NewsClient()

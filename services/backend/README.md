@@ -31,7 +31,14 @@ Real-Time Public Safety & Services Intelligence Copilot backend powered by FastA
 ┌─────────────────┐  ┌──────────────┐  ┌─────────────────┐
 │ Kafka Consumer  │  │ Query Handler│  │  Vector Search  │
 │ (impact_signals)│  │ (Orchestrator)│  │  (MongoDB)      │
-└─────────────────┘  └──────────────┘  └─────────────────┘
+└─────────────────┘  └──────┬───────┘  └─────────────────┘
+                            │
+                      ┌─────┴─────┐
+                      ▼           ▼
+               ┌───────────┐ ┌───────────┐
+               │ Gemini AI │ │   Redis   │
+               │ Orchestron│ │ & Cache   │
+               └───────────┘ └───────────┘
                               │
           ┌───────────────────┼───────────────────┐
           │                   │                   │
@@ -73,6 +80,11 @@ Real-Time Public Safety & Services Intelligence Copilot backend powered by FastA
 - Consumes from `impact_signals` and `chat_output` topics
 - Real-time event broadcasting to WebSocket clients
 - Non-blocking async consumption
+
+### 5. **High-Speed Caching & Reliability**
+- Redis-powered caching for weather and news APIs
+- Sub-millisecond distributed rate limiting
+- Fail-open fallback mechanism
 
 ## Project Structure
 
@@ -304,9 +316,9 @@ curl -X POST http://localhost:8000/api/query \
 | `MONGO_DATABASE` | Database name | `civicsense` |
 | `GEMINI_API_KEY` | Google Gemini API key | Required |
 | `LOG_LEVEL` | Logging level | `INFO` |
-| `HOST` | Server host | `0.0.0.0` |
-| `PORT` | Server port | `8000` |
-| `CORS_ORIGINS` | Allowed CORS origins | `*` |
+| `REDIS_HOST` | Redis server host | `localhost` |
+| `REDIS_PORT` | Redis server port | `6379` |
+| `REDIS_DB` | Redis database number | `0` |
 
 ### Kafka Topics
 

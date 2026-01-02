@@ -78,6 +78,7 @@ graph TD
         FastAPIGateway[FastAPI Gateway]
         MultiAgent[Agent Orchestrator]
         VectorDB[MongoDB Atlas - Vector]
+        RedisCache[Redis - Cache & Rate Limit]
     end
 
     User --> Web
@@ -86,6 +87,7 @@ graph TD
     FastAPIGateway -->|Produce Events| Kafka
     Kafka -->|Stream| Flink
     Flink -->|Aggregates| FastAPIGateway
+    FastAPIGateway <-->|Cache / Rate Limit| RedisCache
     
     FastAPIGateway -->|Query| MultiAgent
     MultiAgent -->|Reasoning| Gemini
@@ -158,6 +160,7 @@ graph TD
         Mongo[MongoDB - Vector Store]
         KafkaMgr[Kafka Consumer Manager]
         Weather[Open-Meteo API]
+        Redis[Redis Client]
     end
 
     API --> Orchestrator
@@ -172,6 +175,8 @@ graph TD
     
     KafkaMgr -->|Live Updates| WS
     API -->|Context| Weather
+    API <-->|Rate Limit| Redis
+    Orchestrator <-->|Cache| Redis
 ```
 
 ## 4. AI & Data Flow
@@ -260,16 +265,13 @@ GROUP BY area, severity, TUMBLE(timestamp, INTERVAL '5' MINUTES);
 - Automatic fallback to demo snapshot
 - Dashboard integration with location-specific data
 
-### 6. **World-Class UX Enhancements** ✨
-- **Mission-Driven Design**: Clear public-interest framing
-- **Persona-Based Filtering**: Parent, Student, Senior, Commuter, First Responder modes
-- **Crisis Simulation Mode**: Simulates crisis scenarios with pulsing alerts
-- **Public Good Messaging**: Explicit civic impact statements
-- **Global Scale Positioning**: Built for municipal integration worldwide
+### 6. **High-Speed Caching & Rate Limiting** 🚀
+- **Redis Integration**: Sub-millisecond data retrieval for frequently accessed data
+- **Weather/News Caching**: Reduced latency and API cost optimization
+- **Intelligent Rate Limiting**: Protection against API abuse at the network edge
+- **Fail-Open Design**: System remains operational even if cache is unavailable
 
----
-
-## 🚀 Quick Start
+### 7. **Serverless Cloud Deployment** ☁️
 
 ### Prerequisites
 - Confluent Cloud account (Enterprise or Standard)
@@ -558,6 +560,9 @@ python -c "from agents.triage_agent import TriageAgent; print('✓ Gemini OK')"
 
 # Test MongoDB
 python -c "from vector_search import VectorSearchEngine; print('✓ MongoDB OK')"
+
+# Test Redis
+python verify_redis.py
 ```
 
 ### Load Testing

@@ -209,10 +209,14 @@ Based on this information, provide clear, actionable guidance that directly answ
 
         # Inject active alerts into the prompt if available
         if active_alerts:
-            prompt += "\n\nACTIVE DASHBOARD ALERTS (Visible to User):\n"
+            prompt += "\n\nCRITICAL: ACTIVE DASHBOARD ALERTS (REAL-TIME DATA)\n"
+            prompt += "The following alerts are currently visible to the user in their dashboard. You MUST acknowledge or reference these if they are relevant to the query.\n"
             for alert in active_alerts:
-                prompt += f"- [{alert.get('severity', 'info').upper()}] {alert.get('title')}: {alert.get('impact')} (Category: {alert.get('category')})\n"
-            prompt += "\nReference these alerts if relevant to the query to prove you are aware of the real-time situation."
+                prompt += f"- [{alert.get('severity', 'info').upper()}] {alert.get('title')} in {alert.get('location', 'current area')}: {alert.get('impact')} (Category: {alert.get('category')})\n"
+            prompt += "\nIf these alerts explain the situation, prioritize this information over the static Knowledge Base.\n"
+            logger.info(f"Injecting {len(active_alerts)} active alerts into prompt for context awareness.")
+        else:
+            logger.info("No active alerts provided in context.")
 
         # Add tone guidance based on user type
         if user_type == "senior":

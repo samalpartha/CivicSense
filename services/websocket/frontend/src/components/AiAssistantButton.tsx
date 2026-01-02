@@ -18,7 +18,9 @@ const AiAssistantButton = () => {
         });
       }
       if (e.detail?.activeAlerts) {
-        setActiveAlerts(e.detail.activeAlerts);
+        flushSync(() => {
+          setActiveAlerts(e.detail.activeAlerts);
+        });
       }
 
       setIsChatOpen(true);

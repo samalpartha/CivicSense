@@ -24,6 +24,11 @@ const About = () => {
       icon: <Users className="text-orange-600" size={32} />,
       title: 'Context-Aware',
       description: 'Adapts responses to user persona (Parent, Senior, Responder)'
+    },
+    {
+      icon: <Database className="text-red-600" size={32} />,
+      title: 'High-Speed Caching',
+      description: 'Redis-powered caching for weather, news, and rate limiting'
     }
   ];
 
@@ -35,6 +40,7 @@ const About = () => {
     { name: 'MongoDB Atlas', desc: 'Vector Search for RAG', icon: <Database size={20} /> },
     { name: 'React + Vite', desc: 'Frontend Dashboard', icon: <Code size={20} /> },
     { name: 'FastAPI', desc: 'Python Backend Services', icon: <Zap size={20} /> },
+    { name: 'Redis', desc: 'Real-time Caching & Rate Limiting', icon: <Database size={20} /> },
     { name: 'Open-Meteo', desc: 'Real-time Weather Data', icon: <Globe size={20} /> }
   ];
 

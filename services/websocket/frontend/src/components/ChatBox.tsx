@@ -176,12 +176,12 @@ const ChatBox = ({ isOpen, onClose, autoQuery, activeLocation, activeAlerts }: C
     // Logic to handle autoQuery
     useEffect(() => {
         if (isOpen && autoQuery && isConnected) {
-            handleSendMessage(autoQuery);
+            handleSendMessage(autoQuery, activeAlerts);
         } else if (isOpen && autoQuery && !isConnected) {
             // Wait for connection then send
             const sub = wsService.status$.subscribe(status => {
                 if (status === 'connected') {
-                    handleSendMessage(autoQuery);
+                    handleSendMessage(autoQuery, activeAlerts);
                     sub.unsubscribe();
                 }
             });
@@ -189,7 +189,7 @@ const ChatBox = ({ isOpen, onClose, autoQuery, activeLocation, activeAlerts }: C
         }
     }, [isOpen, autoQuery, isConnected]);
 
-    const handleSendMessage = (text: string) => {
+    const handleSendMessage = (text: string, alerts?: any[]) => {
         if (!text.trim()) return;
 
         setMessages(prev => [...prev, { text: text, isUser: true }]);
@@ -198,7 +198,7 @@ const ChatBox = ({ isOpen, onClose, autoQuery, activeLocation, activeAlerts }: C
         const sent = wsService.sendMessage(text, {
             user_type: 'general',
             language: 'en',
-            active_alerts: currentAlerts,
+            active_alerts: alerts || currentAlerts,
             location: activeLocation ? `${activeLocation.name} (${activeLocation.zip})` : 'Hartford, CT',
             zip_code: activeLocation?.zip,
             city: activeLocation?.name,
